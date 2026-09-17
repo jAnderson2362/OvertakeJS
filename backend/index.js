@@ -2,6 +2,11 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
+import carRoutes from './routes/cars.js';
+import trackRoutes from './routes/tracks.js';
+import raceRoutes from './routes/races.js';
+import { getTracks } from './data/tracks.js';
+
 dotenv.config();
 
 const app = express();
@@ -16,11 +21,13 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OvertakeJS server running' });
 });
 
-// TODO: Add routes
-// app.use('/api/cars', carRoutes);
-// app.use('/api/tracks', trackRoutes);
-// app.use('/api/races', raceRoutes);
+app.use('/api/cars', carRoutes);
+app.use('/api/tracks', trackRoutes);
+app.use('/api/races', raceRoutes);
 
 app.listen(PORT, () => {
   console.log(`OvertakeJS server running on port ${PORT}`);
+  for (const t of getTracks()) {
+    console.log(`  track: ${t.name} — ${t.length} m`);
+  }
 });
