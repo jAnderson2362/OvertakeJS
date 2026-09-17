@@ -10,7 +10,7 @@ Pick your cars, pick a track, and let the simulation crunch the numbers (horsepo
 |-------|------------|
 | Frontend | React, Vite, Tailwind CSS, HTML5 Canvas |
 | Backend | Node.js, Express |
-| Database | Supabase (PostgreSQL) |
+| Database | MongoDB |
 
 ## Roadmap
 
