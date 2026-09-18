@@ -119,7 +119,7 @@ export default function RaceView({ race, onExit, onRerun }) {
         ctx.lineWidth = 1.5 * dpr;
         ctx.strokeStyle = 'rgba(0,0,0,0.55)';
         ctx.stroke();
-        ctx.font = `${9 * dpr}px ui-sans-serif, system-ui`;
+        ctx.font = `700 ${9 * dpr}px Lato, ui-sans-serif, system-ui`;
         ctx.textAlign = 'center';
         ctx.fillStyle = 'rgba(244,244,245,0.85)';
         ctx.fillText(e.abbr, cx, cy - r - 4 * dpr);
@@ -170,7 +170,7 @@ export default function RaceView({ race, onExit, onRerun }) {
             ← Setup
           </button>
           <div>
-            <span className="font-semibold">{race.track.name}</span>
+            <span className="font-display text-3xl leading-none align-middle">{race.track.name}</span>
             <span className="text-zinc-500 text-sm ml-2">
               {(race.track.length / 1000).toFixed(2)} km · {race.track.laps} laps
             </span>
@@ -206,7 +206,7 @@ export default function RaceView({ race, onExit, onRerun }) {
           {hud.done && (
             <div className="absolute inset-0 flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm">
               <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 max-w-lg w-full mx-4 shadow-2xl">
-                <h2 className="text-xl font-bold mb-1">🏁 Race result</h2>
+                <h2 className="font-display text-5xl leading-none mb-1">🏁 Race result</h2>
                 <p className="text-sm text-zinc-400 mb-4">
                   {race.track.name} · {race.track.laps} laps
                   {race.fastestLap && (
@@ -250,7 +250,7 @@ export default function RaceView({ race, onExit, onRerun }) {
 
         {/* Leaderboard */}
         <aside className="w-72 border-l border-zinc-800 bg-zinc-950 flex flex-col">
-          <div className="px-4 py-3 border-b border-zinc-800 text-xs uppercase tracking-widest text-zinc-500">
+          <div className="px-4 py-2 border-b border-zinc-800 font-display text-2xl leading-none tracking-wide text-zinc-400">
             Live standings
           </div>
           <div className="flex-1 overflow-y-auto">

@@ -1,6 +1,6 @@
 /** 95.482 -> "1:35.482"; sub-minute stays "35.482" */
 export function formatLapTime(seconds) {
-  if (seconds == null || !Number.isFinite(seconds)) return '—';
+  if (seconds == null || !Number.isFinite(seconds)) return '-';
   const m = Math.floor(seconds / 60);
   const s = seconds - m * 60;
   const sStr = s.toFixed(3).padStart(6, '0');
@@ -17,6 +17,6 @@ export function formatClock(seconds) {
 /** Gap to leader: "+3.412" or "+1 lap" */
 export function formatGap(gapSeconds, lapsBehind) {
   if (lapsBehind > 0) return `+${lapsBehind} lap${lapsBehind > 1 ? 's' : ''}`;
-  if (gapSeconds == null) return '—';
+  if (gapSeconds == null) return '-';
   return `+${gapSeconds.toFixed(3)}`;
 }

@@ -141,7 +141,7 @@ export function simulateRace({ track, carIds, laps, seed }) {
 
   let t = 0;
   let nextRecord = 0;
-  events.push({ t: 0, type: 'start', text: 'Lights out — race start!' });
+  events.push({ t: 0, type: 'start', text: 'Lights out, race start!' });
 
   while (t < hardCap && state.some((st) => !st.finished)) {
     // Physical order by total distance (leader first) for proximity queries.
@@ -228,7 +228,7 @@ export function simulateRace({ track, carIds, laps, seed }) {
           fastestLap = { time: lapTime, carId: e.carId };
           events.push({
             t: tCross, type: 'fastestLap',
-            text: `Fastest lap: ${e.car.name} — ${lapTime.toFixed(3)}s`,
+            text: `Fastest lap: ${e.car.name} (${lapTime.toFixed(3)}s)`,
           });
         }
         if (newLaps >= laps) {
