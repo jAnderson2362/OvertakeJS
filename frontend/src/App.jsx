@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { fetchCars, fetchTracks, simulateRace } from './api.js';
+import { fetchCars, fetchTracks, fetchMyCards, simulateRace } from './api.js';
 import CarsPage, { MIN_CARS } from './pages/CarsPage.jsx';
 import TrackPage from './pages/TrackPage.jsx';
+import CardsPage from './pages/CardsPage.jsx';
 import RaceView from './components/RaceView.jsx';
+
+/** Car ids the player holds a card for, from a /api/cards/me profile. */
+const ownedCarsFrom = (profile) =>
+  new Set(profile.cards.map((c) => c.cardId).filter((id) => id.startsWith('car:')).map((id) => id.slice(4)));
 
 function App() {
   const navigate = useNavigate();
@@ -19,10 +24,15 @@ function App() {
   const [simError, setSimError] = useState(null);
   const [race, setRace] = useState(null);
 
+  // Cars the player has collected as cards; purely decorative on the picker
+  // for now, so a failure here never blocks the app.
+  const [ownedCarIds, setOwnedCarIds] = useState(() => new Set());
+
   useEffect(() => {
     Promise.all([fetchCars(), fetchTracks()])
       .then(([c, t]) => { setCars(c); setTracks(t); setTrackId(t[0]?.id ?? null); })
       .catch((err) => setLoadError(err.message));
+    fetchMyCards().then((p) => setOwnedCarIds(ownedCarsFrom(p))).catch(() => {});
   }, []);
 
   const runSimulation = async () => {
@@ -74,8 +84,13 @@ function App() {
               selected={selectedCars}
               onChange={setSelectedCars}
               onNext={() => navigate('/track')}
+              ownedCarIds={ownedCarIds}
             />
           }
+        />
+        <Route
+          path="/cards"
+          element={<CardsPage onProfile={(p) => setOwnedCarIds(ownedCarsFrom(p))} />}
         />
         <Route
           path="/track"

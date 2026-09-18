@@ -182,7 +182,7 @@ export default function RaceView({ race, onExit, onRerun }) {
             onClick={onExit}
             className="px-4 py-1.5 rounded-lg font-display text-lg leading-none border border-line bg-surface text-ink hover:border-ink/60 hover:bg-surface-2 transition-colors"
           >
-            ← Back to setup
+            Back to setup
           </button>
           <div>
             <span className="font-display text-xl leading-none align-middle">{race.track.name}</span>

@@ -196,7 +196,7 @@ export default function TrackPage({
             Where the grid of {selectedCount} will race. Pick a circuit and a race distance.
           </p>
         </div>
-        <GhostButton onClick={onBack}>← Change cars ({selectedCount} selected)</GhostButton>
+        <GhostButton onClick={onBack}>Change cars ({selectedCount} selected)</GhostButton>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] gap-6 items-start">
@@ -301,7 +301,7 @@ export default function TrackPage({
         className="sticky bottom-4 z-20 mt-8"
       >
         <div className="rounded-2xl border border-line/40 bg-bg-deep/85 backdrop-blur-md shadow-2xl shadow-bg-deep/60 px-4 py-3 flex items-center justify-between gap-4 flex-wrap">
-          <SecondaryButton onClick={onBack}>← Back to cars</SecondaryButton>
+          <SecondaryButton onClick={onBack}>Back to cars</SecondaryButton>
           <div className="flex items-center gap-4 flex-wrap">
             <span className="text-sm text-ink/60">
               {current ? (

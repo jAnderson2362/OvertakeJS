@@ -31,6 +31,13 @@
   --glow-1: rgba(255, 255, 255, 0.04);
   --glow-2: rgba(153, 35, 0, 0.16);
 
+  /* Trading card rarity tiers (kept inside the grey/cream/red palette) */
+  --rarity-common: #6f6f7c;
+  --rarity-uncommon: #a89a96;
+  --rarity-rare: #d9d3d6;
+  --rarity-epic: #992300;
+  --rarity-legendary: #d4552a;
+
   --track-curb: #3a3a44;
   --track-asphalt: #070709;
   --track-line: rgba(255, 255, 255, 0.06);
@@ -57,6 +64,11 @@
   --color-highlight-soft: var(--highlight-soft);
   --color-highlight-fg: var(--highlight-fg);
   --color-danger: var(--danger);
+  --color-rarity-common: var(--rarity-common);
+  --color-rarity-uncommon: var(--rarity-uncommon);
+  --color-rarity-rare: var(--rarity-rare);
+  --color-rarity-epic: var(--rarity-epic);
+  --color-rarity-legendary: var(--rarity-legendary);
 }
 
 html {
@@ -71,6 +83,10 @@ body {
   color: var(--ink);
   min-height: 100vh;
 }
+
+/* 3D card flip helpers for the pack opening reveal */
+.preserve-3d { transform-style: preserve-3d; }
+.backface-hidden { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
 
 /* Thin, on-palette scrollbars for the scrolling lists */
 .scroll-thin {

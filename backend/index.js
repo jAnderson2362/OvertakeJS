@@ -7,6 +7,7 @@ import { initStore, getTracks, isDbReady } from './data/store.js';
 import carRoutes from './routes/cars.js';
 import trackRoutes from './routes/tracks.js';
 import raceRoutes from './routes/races.js';
+import cardRoutes from './routes/cards.js';
 
 dotenv.config();
 
@@ -25,6 +26,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/cars', carRoutes);
 app.use('/api/tracks', trackRoutes);
 app.use('/api/races', raceRoutes);
+app.use('/api/cards', cardRoutes);
 
 const connected = await connectDB();
 await initStore(connected);
