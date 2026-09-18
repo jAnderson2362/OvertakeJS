@@ -1,4 +1,6 @@
-// Track database (in-memory until the DB layer lands).
+// Track seed data. The MongoDB `tracks` collection is seeded/synced from
+// this list at startup, and it doubles as the in-memory fallback when no DB
+// is reachable (see data/store.js).
 //
 // Each track is authored as a closed loop of 2D control points in meters.
 // The geometry module interpolates a smooth centerline through them and
@@ -6,7 +8,7 @@
 
 import { buildCenterline, findOvertakeZones } from '../sim/geometry.js';
 
-const trackDefs = [
+export const seedTracks = [
   {
     id: 'valmont-gp',
     name: 'Circuit de Valmont',
@@ -67,27 +69,9 @@ const trackDefs = [
   },
 ];
 
-// Build geometry once at module load.
-const tracks = trackDefs.map((def) => {
+/** Derive spline centerline + overtaking zones from a raw track record. */
+export function buildTrackGeometry(def) {
   const centerline = buildCenterline(def.controlPoints, 5);
   const overtakeZones = findOvertakeZones(centerline.curvature, centerline.spacing);
   return { ...def, centerline, overtakeZones };
-});
-
-/** Public list: geometry downsampled for rendering, no raw arrays. */
-export function getTracks() {
-  return tracks.map((t) => ({
-    id: t.id,
-    name: t.name,
-    location: t.location,
-    description: t.description,
-    width: t.width,
-    length: Math.round(t.centerline.length),
-    // Every 3rd sample (~15 m) is plenty for drawing.
-    path: t.centerline.points.filter((_, i) => i % 3 === 0).map(([x, y]) => [Math.round(x * 10) / 10, Math.round(y * 10) / 10]),
-  }));
-}
-
-export function getTrackById(id) {
-  return tracks.find((t) => t.id === id);
 }

@@ -1,4 +1,6 @@
-// Car performance database (in-memory until the DB layer lands).
+// Car seed data. The MongoDB `cars` collection is seeded/synced from this
+// list at startup, and it doubles as the in-memory fallback when no DB is
+// reachable (see data/store.js).
 //
 // Figures are from manufacturer data / published instrumented tests:
 //   power       - peak crank power in kW
@@ -12,7 +14,7 @@
 //   fuelPerKm   - fuel consumed at race pace, kg/km
 //   consistency - per-lap pace variation (1 sigma, fraction of lap time)
 
-const cars = [
+export const seedCars = [
   {
     id: 'mazda-mx5',
     name: 'Mazda MX-5 (ND)',
@@ -126,11 +128,3 @@ const cars = [
 // Launch traction: fraction of total weight over the driven axle,
 // including dynamic load transfer under acceleration.
 export const DRIVE_TRACTION = { fwd: 0.55, rwd: 0.72, awd: 1.0 };
-
-export function getCars() {
-  return cars;
-}
-
-export function getCarById(id) {
-  return cars.find((c) => c.id === id);
-}

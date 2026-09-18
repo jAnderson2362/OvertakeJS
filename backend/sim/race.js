@@ -14,7 +14,7 @@
 // what the frontend replays.
 
 import { solveSpeedProfile, accelEnvelope } from './lapsim.js';
-import { getCarById } from '../data/cars.js';
+import { getCarById } from '../data/store.js';
 
 const SIM_DT = 0.05;      // physics step, s
 const RECORD_DT = 0.25;   // timeline sample cadence, s

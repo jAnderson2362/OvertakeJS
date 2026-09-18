@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getTracks } from '../data/tracks.js';
+import { getTracks } from '../data/store.js';
 
 const router = Router();
 

@@ -2,10 +2,11 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
+import { connectDB } from './config/db.js';
+import { initStore, getTracks, isDbReady } from './data/store.js';
 import carRoutes from './routes/cars.js';
 import trackRoutes from './routes/tracks.js';
 import raceRoutes from './routes/races.js';
-import { getTracks } from './data/tracks.js';
 
 dotenv.config();
 
@@ -18,12 +19,15 @@ app.use(express.json());
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OvertakeJS server running' });
+  res.json({ status: 'OvertakeJS server running', db: isDbReady() ? 'mongodb' : 'in-memory' });
 });
 
 app.use('/api/cars', carRoutes);
 app.use('/api/tracks', trackRoutes);
 app.use('/api/races', raceRoutes);
+
+const connected = await connectDB();
+await initStore(connected);
 
 app.listen(PORT, () => {
   console.log(`OvertakeJS server running on port ${PORT}`);
