@@ -18,6 +18,8 @@ const carSchema = new mongoose.Schema(
     class: String,
     country: String,
     year: Number,
+    image: String, // optional URL/path for the car thumbnail
+
   },
   { timestamps: true },
 );

@@ -42,10 +42,10 @@ function App() {
 
   if (loadError) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center">
+      <div className="min-h-screen text-ink flex items-center justify-center">
         <div className="text-center max-w-md px-6">
-          <h1 className="font-display text-5xl leading-none font-bold mb-2">Can't reach the pit wall</h1>
-          <p className="text-zinc-400 text-sm">
+          <h1 className="font-display text-3xl leading-none mb-2">Can't reach the pit wall</h1>
+          <p className="text-ink/60 text-sm">
             {loadError}. Is the backend running on port 5000? (<code>npm run dev</code> in <code>backend/</code>)
           </p>
         </div>
@@ -55,8 +55,8 @@ function App() {
 
   if (!cars || !tracks) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center">
-        <p className="text-zinc-500 animate-pulse">Warming up the engines…</p>
+      <div className="min-h-screen text-ink flex items-center justify-center">
+        <p className="text-muted animate-pulse">Warming up the engines...</p>
       </div>
     );
   }
@@ -64,7 +64,7 @@ function App() {
   const haveGrid = selectedCars.length >= MIN_CARS;
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
+    <div className="min-h-screen text-ink">
       <Routes>
         <Route
           path="/"

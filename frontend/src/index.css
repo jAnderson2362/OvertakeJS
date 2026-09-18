@@ -1,6 +1,82 @@
 @import "tailwindcss";
 
-@theme {
-  --font-sans: "Lato", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Dongle", "Lato", ui-sans-serif, system-ui, sans-serif;
+/*
+  Brand palette (single dark theme)
+    #992300  red      accent + highlight
+    #F0EDEE  cream    text
+    near-black greys  background, surfaces, borders
+
+  Semantic tokens below are exposed to Tailwind via @theme inline, so
+  utilities like bg-surface, text-ink/60 and border-line/40 read them.
+*/
+
+:root {
+  color-scheme: dark;
+  --bg: #0e0e11;
+  --bg-deep: #070709;
+  --surface: #1c1c21;
+  --surface-2: #26262c;
+  --line: #3a3a44;
+  --ink: #F0EDEE;
+  --muted: #8d8d99;
+  --accent: #992300;
+  --accent-hover: #b52e06;
+  --accent-fg: #F0EDEE;
+  --highlight: #992300;
+  --highlight-soft: #c8481f;
+  --highlight-fg: #F0EDEE;
+  --highlight-glow: rgba(153, 35, 0, 0.45);
+  --danger: #992300;
+
+  --glow-1: rgba(255, 255, 255, 0.04);
+  --glow-2: rgba(153, 35, 0, 0.16);
+
+  --track-curb: #3a3a44;
+  --track-asphalt: #070709;
+  --track-line: rgba(255, 255, 255, 0.06);
+  --track-check-a: #F0EDEE;
+  --track-check-b: #0e0e11;
+  --car-label: rgba(240, 237, 238, 0.85);
 }
+
+@theme inline {
+  --font-sans: "Lato", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Racing Sans One", "Lato", ui-sans-serif, system-ui, sans-serif;
+
+  --color-bg: var(--bg);
+  --color-bg-deep: var(--bg-deep);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-fg: var(--accent-fg);
+  --color-highlight: var(--highlight);
+  --color-highlight-soft: var(--highlight-soft);
+  --color-highlight-fg: var(--highlight-fg);
+  --color-danger: var(--danger);
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  background:
+    radial-gradient(1200px 600px at 10% -10%, var(--glow-1), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, var(--glow-2), transparent 55%),
+    var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+}
+
+/* Thin, on-palette scrollbars for the scrolling lists */
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--line) 80%, transparent) transparent;
+}
+.scroll-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+.scroll-thin::-webkit-scrollbar-thumb { background: color-mix(in oklab, var(--line) 80%, transparent); border-radius: 999px; }
+.scroll-thin::-webkit-scrollbar-track { background: transparent; }

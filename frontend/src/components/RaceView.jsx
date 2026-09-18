@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { buildPathLookup, distanceAt, standingsAt } from '../utils/playback.js';
 import { formatLapTime, formatClock, formatGap } from '../utils/format.js';
+import CarThumb from './CarThumb.jsx';
+
+/** Read a CSS token from the document (canvas drawing can't use CSS variables directly). */
+const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
 const SPEED_OPTIONS = [1, 2, 4, 8, 16, 32];
 
@@ -26,6 +30,14 @@ export default function RaceView({ race, onExit, onRerun }) {
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
+    const palette = {
+      curb: cssVar('--track-curb'),
+      asphalt: cssVar('--track-asphalt'),
+      line: cssVar('--track-line'),
+      checkA: cssVar('--track-check-a'),
+      checkB: cssVar('--track-check-b'),
+      label: cssVar('--car-label'),
+    };
     const { track, timeline, entries } = race;
     const { samples, dt, duration } = timeline;
     let raf;
@@ -73,13 +85,13 @@ export default function RaceView({ race, onExit, onRerun }) {
       ctx.closePath();
       ctx.lineJoin = 'round';
 
-      ctx.strokeStyle = '#3f3f46';           // curb / casing
+      ctx.strokeStyle = palette.curb;        // curb / casing
       ctx.lineWidth = ribbon + 5 * dpr;
       ctx.stroke();
-      ctx.strokeStyle = '#26262b';           // asphalt
+      ctx.strokeStyle = palette.asphalt;     // asphalt
       ctx.lineWidth = ribbon;
       ctx.stroke();
-      ctx.strokeStyle = 'rgba(255,255,255,0.06)'; // faded racing line
+      ctx.strokeStyle = palette.line;        // faded racing line
       ctx.lineWidth = 1.5 * dpr;
       ctx.stroke();
 
@@ -96,7 +108,7 @@ export default function RaceView({ race, onExit, onRerun }) {
       const sq = 3 * dpr;
       for (let c = 0; c < cells; c++) {
         for (let r = 0; r < 2; r++) {
-          ctx.fillStyle = (c + r) % 2 === 0 ? '#e4e4e7' : '#18181b';
+          ctx.fillStyle = (c + r) % 2 === 0 ? palette.checkA : palette.checkB;
           const px = tf.toX(x0) + nx * (-half + c * cell) + (dx / len) * r * sq;
           const py = tf.toY(y0) + ny * (-half + c * cell) + (dy / len) * r * sq;
           ctx.fillRect(px, py, cell * 0.95, sq);
@@ -121,7 +133,7 @@ export default function RaceView({ race, onExit, onRerun }) {
         ctx.stroke();
         ctx.font = `700 ${9 * dpr}px Lato, ui-sans-serif, system-ui`;
         ctx.textAlign = 'center';
-        ctx.fillStyle = 'rgba(244,244,245,0.85)';
+        ctx.fillStyle = palette.label;
         ctx.fillText(e.abbr, cx, cy - r - 4 * dpr);
       }
     }
@@ -164,39 +176,42 @@ export default function RaceView({ race, onExit, onRerun }) {
   return (
     <div className="h-screen flex flex-col">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-zinc-800 bg-zinc-950">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-line/30 bg-bg-deep">
         <div className="flex items-center gap-4">
-          <button onClick={onExit} className="text-sm text-zinc-400 hover:text-white transition-colors">
-            ← Setup
+          <button
+            onClick={onExit}
+            className="px-4 py-1.5 rounded-lg font-display text-lg leading-none border border-line bg-surface text-ink hover:border-ink/60 hover:bg-surface-2 transition-colors"
+          >
+            ← Back to setup
           </button>
           <div>
-            <span className="font-display text-3xl leading-none align-middle">{race.track.name}</span>
-            <span className="text-zinc-500 text-sm ml-2">
+            <span className="font-display text-xl leading-none align-middle">{race.track.name}</span>
+            <span className="text-ink/45 text-sm ml-2">
               {(race.track.length / 1000).toFixed(2)} km · {race.track.laps} laps
             </span>
           </div>
         </div>
         <div className="flex items-center gap-5 text-sm">
-          <span className="tabular-nums text-zinc-300">
-            Lap <span className="font-semibold text-white">{leaderLap}</span>/{race.track.laps}
+          <span className="tabular-nums text-ink/80">
+            Lap <span className="font-semibold text-ink">{leaderLap}</span>/{race.track.laps}
           </span>
-          <span className="tabular-nums text-zinc-400">⏱ {formatClock(hud.t)}</span>
+          <span className="tabular-nums text-ink/60">⏱ {formatClock(hud.t)}</span>
         </div>
       </div>
 
       <div className="flex flex-1 min-h-0">
         {/* Canvas */}
-        <div ref={containerRef} className="flex-1 relative bg-zinc-950">
+        <div ref={containerRef} className="flex-1 relative bg-bg">
           <canvas ref={canvasRef} className="absolute inset-0" />
 
           {/* Events ticker */}
           <div className="absolute left-4 bottom-4 space-y-1 pointer-events-none">
             {visibleEvents.map((ev, i) => (
               <div key={`${ev.t}-${i}`}
-                className={`text-xs px-3 py-1.5 rounded-md bg-zinc-900/85 border border-zinc-800 ${
-                  ev.type === 'overtake' ? 'text-amber-300' : ev.type === 'fastestLap' ? 'text-purple-300' : 'text-zinc-300'
+                className={`text-xs px-3 py-1.5 rounded-md bg-bg-deep/85 border border-line/30 ${
+                  ev.type === 'overtake' ? 'text-highlight' : ev.type === 'fastestLap' ? 'text-highlight-soft italic' : 'text-ink/80'
                 }`}>
-                <span className="text-zinc-500 tabular-nums mr-2">{formatClock(ev.t)}</span>
+                <span className="text-ink/45 tabular-nums mr-2">{formatClock(ev.t)}</span>
                 {ev.text}
               </div>
             ))}
@@ -204,10 +219,10 @@ export default function RaceView({ race, onExit, onRerun }) {
 
           {/* Results overlay */}
           {hud.done && (
-            <div className="absolute inset-0 flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm">
-              <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 max-w-lg w-full mx-4 shadow-2xl">
-                <h2 className="font-display text-5xl leading-none mb-1">🏁 Race result</h2>
-                <p className="text-sm text-zinc-400 mb-4">
+            <div className="absolute inset-0 flex items-center justify-center bg-bg/80 backdrop-blur-sm">
+              <div className="bg-surface border border-line/50 rounded-2xl p-6 max-w-lg w-full mx-4 shadow-2xl">
+                <h2 className="font-display text-3xl leading-none mb-1">Race result</h2>
+                <p className="text-sm text-ink/60 mb-4">
                   {race.track.name} · {race.track.laps} laps
                   {race.fastestLap && (
                     <> · fastest lap {formatLapTime(race.fastestLap.time)} (
@@ -216,14 +231,14 @@ export default function RaceView({ race, onExit, onRerun }) {
                 </p>
                 <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
                   {race.results.map((r) => (
-                    <div key={r.carId} className="flex items-center gap-3 text-sm bg-zinc-800/60 rounded-lg px-3 py-2">
-                      <span className="w-6 text-zinc-400 font-semibold tabular-nums">{r.position}</span>
-                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: r.color }} />
+                    <div key={r.carId} className="flex items-center gap-3 text-sm bg-bg-deep/60 rounded-lg px-3 py-2">
+                      <span className="w-6 text-ink/60 font-semibold tabular-nums">{r.position}</span>
+                      <CarThumb src={r.image} color={r.color} name={r.name} />
                       <span className="flex-1 truncate">{r.name}</span>
-                      <span className="text-zinc-400 tabular-nums text-xs">
+                      <span className="text-ink/60 tabular-nums text-xs">
                         {r.position === 1 ? formatLapTime(r.totalTime) : formatGap(r.gap, 0)}
                       </span>
-                      <span className="text-zinc-500 tabular-nums text-xs w-16 text-right">
+                      <span className="text-ink/45 tabular-nums text-xs w-16 text-right">
                         {formatLapTime(r.bestLap)}
                       </span>
                     </div>
@@ -231,15 +246,15 @@ export default function RaceView({ race, onExit, onRerun }) {
                 </div>
                 <div className="flex gap-3 mt-5">
                   <button onClick={restart}
-                    className="flex-1 py-2.5 rounded-lg bg-zinc-700 hover:bg-zinc-600 font-medium text-sm transition-colors">
+                    className="flex-1 py-2.5 rounded-lg bg-line hover:bg-line/80 text-accent-fg font-medium text-sm transition-colors">
                     Replay
                   </button>
                   <button onClick={onRerun}
-                    className="flex-1 py-2.5 rounded-lg bg-red-600 hover:bg-red-500 font-medium text-sm transition-colors">
+                    className="flex-1 py-2.5 rounded-lg bg-accent hover:bg-accent-hover font-medium text-sm transition-colors">
                     Re-run simulation
                   </button>
                   <button onClick={onExit}
-                    className="flex-1 py-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 font-medium text-sm transition-colors">
+                    className="flex-1 py-2.5 rounded-lg bg-line/40 hover:bg-line/60 font-medium text-sm transition-colors">
                     New race
                   </button>
                 </div>
@@ -249,22 +264,22 @@ export default function RaceView({ race, onExit, onRerun }) {
         </div>
 
         {/* Leaderboard */}
-        <aside className="w-72 border-l border-zinc-800 bg-zinc-950 flex flex-col">
-          <div className="px-4 py-2 border-b border-zinc-800 font-display text-2xl leading-none tracking-wide text-zinc-400">
+        <aside className="w-72 border-l border-line/30 bg-bg-deep flex flex-col">
+          <div className="px-4 py-2 border-b border-line/30 font-display text-lg leading-none tracking-wide text-ink/60">
             Live standings
           </div>
           <div className="flex-1 overflow-y-auto">
             {hud.rows.map((row) => (
-              <div key={row.carId} className="flex items-center gap-2.5 px-4 py-2.5 border-b border-zinc-900 text-sm">
-                <span className="w-5 text-zinc-500 font-semibold tabular-nums">{row.position}</span>
-                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: row.color }} />
+              <div key={row.carId} className="flex items-center gap-2.5 px-4 py-2.5 border-b border-line/15 text-sm">
+                <span className="w-5 text-ink/45 font-semibold tabular-nums">{row.position}</span>
+                <CarThumb src={row.image} color={row.color} name={row.name} />
                 <div className="flex-1 min-w-0">
                   <div className="truncate leading-tight">{row.name}</div>
-                  <div className="text-[11px] text-zinc-500 tabular-nums">
+                  <div className="text-[11px] text-ink/45 tabular-nums">
                     {row.finished ? 'Finished' : `Lap ${row.lap} · ${Math.round(row.speedKmh)} km/h`}
                   </div>
                 </div>
-                <span className="text-xs text-zinc-400 tabular-nums">
+                <span className="text-xs text-ink/60 tabular-nums">
                   {row.position === 1 ? 'Leader' : formatGap(row.gap, row.lapsBehind)}
                 </span>
               </div>
@@ -272,33 +287,33 @@ export default function RaceView({ race, onExit, onRerun }) {
           </div>
 
           {/* Playback controls */}
-          <div className="border-t border-zinc-800 p-4 space-y-3">
+          <div className="border-t border-line/30 p-4 space-y-3">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setPlaying((p) => !p)}
-                className="flex-1 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-sm font-medium transition-colors">
+                className="flex-1 py-2 rounded-lg bg-line/40 hover:bg-line/60 text-sm font-medium transition-colors">
                 {playing ? '❚❚ Pause' : '▶ Play'}
               </button>
               <button onClick={restart}
-                className="py-2 px-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-sm transition-colors">
+                className="py-2 px-3 rounded-lg bg-line/40 hover:bg-line/60 text-sm transition-colors">
                 ↺
               </button>
             </div>
             <div>
-              <div className="text-[11px] text-zinc-500 mb-1.5">Playback speed</div>
+              <div className="text-[11px] text-ink/45 mb-1.5">Playback speed</div>
               <div className="grid grid-cols-6 gap-1">
                 {SPEED_OPTIONS.map((s) => (
                   <button key={s} onClick={() => setSpeed(s)}
                     className={`py-1 rounded text-xs tabular-nums transition-colors ${
-                      speed === s ? 'bg-red-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                      speed === s ? 'bg-highlight text-highlight-fg font-semibold' : 'bg-line/30 text-ink/60 hover:bg-line/50'
                     }`}>
                     {s}×
                   </button>
                 ))}
               </div>
             </div>
-            <div className="h-1.5 rounded-full bg-zinc-800 overflow-hidden">
-              <div className="h-full bg-red-600 transition-[width] duration-200"
+            <div className="h-1.5 rounded-full bg-line/30 overflow-hidden">
+              <div className="h-full bg-highlight transition-[width] duration-200"
                 style={{ width: `${Math.min(100, (hud.t / race.timeline.duration) * 100)}%` }} />
             </div>
           </div>

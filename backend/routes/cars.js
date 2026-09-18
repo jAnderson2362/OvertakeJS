@@ -14,6 +14,7 @@ router.get('/', (req, res) => {
     tireGrip: c.tireGrip,
     topSpeed: c.topSpeed,
     class: c.class,
+    country: c.country,
     year: c.year,
     powerToWeight: Math.round((c.hp / c.mass) * 1000) / 1000, // hp per kg
   })));
