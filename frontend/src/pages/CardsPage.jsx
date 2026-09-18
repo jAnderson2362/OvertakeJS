@@ -1,9 +1,10 @@
 // Card packs and collection. Claim the free daily pack, buy packs with
 // credits, open them with a flip reveal, and browse everything collected.
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { fetchCardCatalog, fetchMyCards, claimDailyPack, buyPacks } from '../api.js';
+import { useAuth } from '../auth.jsx';
 import TradingCard, { RARITY_COLOR, RARITY_LABEL } from '../components/TradingCard.jsx';
 import PackOpening from '../components/PackOpening.jsx';
 import { ChipGroup, PrimaryButton, EmptyState } from '../components/ui.jsx';
@@ -207,6 +208,19 @@ function PackCard({ pack, credits, daily, busy, onOpen, index }) {
 /* ---------- Page ---------- */
 
 export default function CardsPage({ onProfile }) {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted animate-pulse">Checking your pass...</p>
+      </div>
+    );
+  }
+  if (!user) return <Navigate to="/login?next=/cards" replace />;
+  return <CardsPageInner onProfile={onProfile} user={user} />;
+}
+
+function CardsPageInner({ onProfile, user }) {
   const navigate = useNavigate();
   const [catalog, setCatalog] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -319,7 +333,7 @@ export default function CardsPage({ onProfile }) {
             Card <span className="text-highlight">packs</span>
           </h1>
           <p className="text-ink/60 mt-1">
-            One free pack a day. Spend credits on more for better odds at the rare stuff.
+            <span className="text-ink">{user.name}</span>, one free pack a day. Spend credits on more for better odds at the rare stuff.
           </p>
         </motion.div>
         <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>

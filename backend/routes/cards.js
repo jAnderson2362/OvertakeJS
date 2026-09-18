@@ -3,21 +3,18 @@ import { getCatalog, getPack, rarityRefund } from '../cards/catalog.js';
 import { openPack, packOddsPercent } from '../cards/packs.js';
 import { loadPlayer, savePlayer, ConflictError } from '../data/players.js';
 import { MAX_PACKS_PER_PURCHASE } from '../data/cards.js';
+import { requireAuth } from '../auth/session.js';
 
 const router = Router();
 
 /* ---------- Player identity ---------- */
 
-// Until there is auth, the client identifies itself with a generated id.
-const PLAYER_ID = /^[A-Za-z0-9_-]{8,64}$/;
-
+// Collections are keyed on the signed-in user's id.
 function requirePlayer(req, res, next) {
-  const id = req.get('X-Player-Id');
-  if (!id || !PLAYER_ID.test(id)) {
-    return res.status(400).json({ error: 'Missing or invalid X-Player-Id header.' });
-  }
-  req.playerId = id;
-  next();
+  requireAuth(req, res, () => {
+    req.playerId = req.auth.userId;
+    next();
+  });
 }
 
 /* ---------- Daily pack timing (UTC calendar day) ---------- */

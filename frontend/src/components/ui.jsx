@@ -127,10 +127,10 @@ export function SortSelect({ value, onChange, options }) {
   );
 }
 
-export function PrimaryButton({ children, disabled, onClick, className = '' }) {
+export function PrimaryButton({ children, disabled, onClick, className = '', type = 'button' }) {
   return (
     <motion.button
-      type="button"
+      type={type}
       onClick={onClick}
       disabled={disabled}
       whileHover={disabled ? undefined : { scale: 1.03, y: -1 }}

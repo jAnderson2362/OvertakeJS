@@ -23,20 +23,28 @@ export const simulateRace = (carIds, trackId, laps) =>
     body: JSON.stringify({ carIds, trackId, laps }),
   });
 
+/* ---------- Auth ---------- */
+
+// The session lives in an httpOnly cookie, sent automatically on same-origin
+// requests. Sign-in and sign-up also send the anonymous browser id so a
+// collection opened before signing up moves onto the account.
+const postJson = (path, body, headers = {}) =>
+  request(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...headers },
+    body: JSON.stringify(body),
+  });
+
+const anonHeader = () => ({ 'X-Player-Id': getPlayerId() });
+
+export const fetchMe = () => request('/api/auth/me');
+export const register = (email, password, name) => postJson('/api/auth/register', { email, password, name }, anonHeader());
+export const login = (email, password) => postJson('/api/auth/login', { email, password }, anonHeader());
+export const logout = () => request('/api/auth/logout', { method: 'POST' });
+
 /* ---------- Cards and packs ---------- */
 
-const asPlayer = () => ({ 'X-Player-Id': getPlayerId() });
-
 export const fetchCardCatalog = () => request('/api/cards/catalog');
-
-export const fetchMyCards = () => request('/api/cards/me', { headers: asPlayer() });
-
-export const claimDailyPack = () =>
-  request('/api/cards/packs/daily', { method: 'POST', headers: asPlayer() });
-
-export const buyPacks = (packId, quantity) =>
-  request('/api/cards/packs/buy', {
-    method: 'POST',
-    headers: { ...asPlayer(), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ packId, quantity }),
-  });
+export const fetchMyCards = () => request('/api/cards/me');
+export const claimDailyPack = () => request('/api/cards/packs/daily', { method: 'POST' });
+export const buyPacks = (packId, quantity) => postJson('/api/cards/packs/buy', { packId, quantity });

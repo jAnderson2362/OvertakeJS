@@ -4,7 +4,9 @@ import { fetchCars, fetchTracks, fetchMyCards, simulateRace } from './api.js';
 import CarsPage, { MIN_CARS } from './pages/CarsPage.jsx';
 import TrackPage from './pages/TrackPage.jsx';
 import CardsPage from './pages/CardsPage.jsx';
+import LoginPage from './pages/LoginPage.jsx';
 import RaceView from './components/RaceView.jsx';
+import { useAuth } from './auth.jsx';
 
 /** Car ids the player holds a card for, from a /api/cards/me profile. */
 const ownedCarsFrom = (profile) =>
@@ -12,6 +14,7 @@ const ownedCarsFrom = (profile) =>
 
 function App() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [cars, setCars] = useState(null);
   const [tracks, setTracks] = useState(null);
   const [loadError, setLoadError] = useState(null);
@@ -24,16 +27,20 @@ function App() {
   const [simError, setSimError] = useState(null);
   const [race, setRace] = useState(null);
 
-  // Cars the player has collected as cards; purely decorative on the picker
-  // for now, so a failure here never blocks the app.
+  // Cars the signed-in player has collected as cards; purely decorative on
+  // the picker for now, so a failure here never blocks the app.
   const [ownedCarIds, setOwnedCarIds] = useState(() => new Set());
 
   useEffect(() => {
     Promise.all([fetchCars(), fetchTracks()])
       .then(([c, t]) => { setCars(c); setTracks(t); setTrackId(t[0]?.id ?? null); })
       .catch((err) => setLoadError(err.message));
-    fetchMyCards().then((p) => setOwnedCarIds(ownedCarsFrom(p))).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!user) { setOwnedCarIds(new Set()); return; }
+    fetchMyCards().then((p) => setOwnedCarIds(ownedCarsFrom(p))).catch(() => {});
+  }, [user]);
 
   const runSimulation = async () => {
     setSimulating(true);
@@ -92,6 +99,7 @@ function App() {
           path="/cards"
           element={<CardsPage onProfile={(p) => setOwnedCarIds(ownedCarsFrom(p))} />}
         />
+        <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
         <Route
           path="/track"
           element={
