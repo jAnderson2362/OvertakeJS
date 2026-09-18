@@ -4,6 +4,7 @@ import { fetchCars, fetchTracks, fetchMyCards, simulateRace } from './api.js';
 import CarsPage, { MIN_CARS } from './pages/CarsPage.jsx';
 import TrackPage from './pages/TrackPage.jsx';
 import CardsPage from './pages/CardsPage.jsx';
+import ProfilePage from './pages/ProfilePage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import RaceView from './components/RaceView.jsx';
 import { useAuth } from './auth.jsx';
@@ -99,6 +100,7 @@ function App() {
           path="/cards"
           element={<CardsPage onProfile={(p) => setOwnedCarIds(ownedCarsFrom(p))} />}
         />
+        <Route path="/profile" element={<ProfilePage />} />
         <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
         <Route
           path="/track"

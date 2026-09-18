@@ -157,14 +157,7 @@ function PackCard({ pack, credits, daily, busy, onOpen, index }) {
       )}
 
       <div className="relative">
-        <div className="flex items-start justify-between gap-3">
-          <h3 className="font-display text-2xl leading-none">{pack.name}</h3>
-          <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] leading-none tabular-nums ${
-            pack.daily ? 'bg-highlight text-highlight-fg' : 'bg-line/30 text-ink/80'
-          }`}>
-            {pack.daily ? 'Free' : `${pack.price} cr`}
-          </span>
-        </div>
+        <h3 className="font-display text-2xl leading-none">{pack.name}</h3>
         <p className="text-sm text-ink/55 mt-1.5">{pack.tagline}</p>
       </div>
 
@@ -343,9 +336,8 @@ function CardsPageInner({ onProfile, user }) {
 
       {/* Packs */}
       <section className="mb-12">
-        <div className="flex items-baseline justify-between mb-4">
+        <div className="mb-4">
           <h2 className="font-display text-2xl leading-none">Packs</h2>
-          <span className="text-xs text-ink/45 tabular-nums">{profile.packsOpened} opened so far</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           {catalog.packs.map((pack, i) => (

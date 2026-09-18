@@ -77,6 +77,9 @@ function UserChip() {
             className="absolute right-0 mt-2 z-30 min-w-[180px] rounded-xl border border-line/40 bg-bg-deep/95 backdrop-blur-md shadow-2xl shadow-bg-deep/60 p-1.5"
           >
             <div className="px-3 py-2 text-xs text-ink/45 truncate">{user.email}</div>
+            <Link to="/profile" role="menuitem" onClick={() => setOpen(false)} className="block rounded-lg px-3 py-2 text-sm text-ink/80 hover:bg-line/30 hover:text-ink transition-colors">
+              Profile
+            </Link>
             <Link to="/cards" role="menuitem" onClick={() => setOpen(false)} className="block rounded-lg px-3 py-2 text-sm text-ink/80 hover:bg-line/30 hover:text-ink transition-colors">
               My collection
             </Link>
@@ -129,7 +132,7 @@ function CardsLink() {
 
 export default function StepHeader({ step }) {
   return (
-    <header className="mb-8 flex items-end justify-between gap-6 flex-wrap">
+    <header className="mb-8 flex items-start justify-between gap-6 flex-wrap">
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}

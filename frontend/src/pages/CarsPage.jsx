@@ -432,7 +432,7 @@ export default function CarsPage({ cars, selected, onChange, onNext, ownedCarIds
 
       <div className="flex items-end justify-between gap-4 flex-wrap mb-4">
         <div>
-          <h2 className="font-display text-3xl leading-none">Choose your grid</h2>
+          <h2 className="font-display text-3xl leading-none">Choose your cars</h2>
           <p className="text-sm text-ink/50 mt-1">
             Pick {MIN_CARS} to {MAX_CARS} cars. The order you pick sets the starting grid.
           </p>
