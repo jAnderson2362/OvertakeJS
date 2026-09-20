@@ -38,12 +38,20 @@
   --rarity-epic: #992300;
   --rarity-legendary: #d4552a;
 
-  --track-curb: #3a3a44;
-  --track-asphalt: #070709;
-  --track-line: rgba(255, 255, 255, 0.06);
+  --track-curb: #2a2a32;
+  --track-asphalt: #17171c;
+  --track-asphalt-lo: #0a0a0d;
+  --track-line: rgba(240, 237, 238, 0.08);
+  --track-edge: rgba(240, 237, 238, 0.22);
+  --track-glow: rgba(153, 35, 0, 0.30);
+  --track-kerb: #992300;
+  --track-kerb-alt: #F0EDEE;
   --track-check-a: #F0EDEE;
   --track-check-b: #0e0e11;
-  --car-label: rgba(240, 237, 238, 0.85);
+  --track-arena: #14141a;
+  --track-arena-lo: #050506;
+  --track-grid: rgba(240, 237, 238, 0.035);
+  --car-label: rgba(240, 237, 238, 0.88);
 }
 
 @theme inline {
