@@ -164,6 +164,19 @@ export default function LoginPage() {
             <PrimaryButton type="submit" disabled={busy} className="w-full mt-2 text-xl!">
               {busy ? 'One moment' : registering ? 'Create account' : 'Sign in'}
             </PrimaryButton>
+
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => window.location.href = 'http://localhost:5000/api/auth/google'}
+              className="w-full mt-2 flex items-center justify-center gap-3 rounded-lg bg-white px-4 py-3 text-gray-700 font-[Lato] font-medium shadow-sm border border-gray-300 hover:bg-gray-100 hover:shadow-md transition-all"
+            >
+              <img src="https://developers.google.com/identity/images/g-logo.png" alt="" className="w-5 h-5" />
+              Continue with Google
+            </button>
+
+
+
           </form>
         </div>
 

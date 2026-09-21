@@ -49,3 +49,30 @@ export async function createUser({ email, name, passwordHash }) {
     throw err;
   }
 }
+
+export async function findOrCreateByGoogle({ googleId, email, name }) {
+    const e = normalizeEmail(email);
+
+    if (!isDbReady()) {
+      // Check by googleId first
+      let u = [...memory.values()].find((v) => v.googleId === googleId);
+      if (u) return publicUser(u);
+      // Check by email (link accounts)
+      u = [...memory.values()].find((v) => v.email === e);
+      if (u) { u.googleId = googleId; return publicUser(u); }
+      // Create new
+      u = { id: randomUUID(), email: e, name, googleId, passwordHash: null };
+      memory.set(u.id, u);
+      return publicUser(u);
+    }
+
+    // Check by googleId first
+    let doc = await User.findOne({ googleId }).lean();
+    if (doc) return publicUser(fromDoc(doc));
+    // Check by email (link accounts)
+    doc = await User.findOneAndUpdate({ email: e }, { googleId }, { new: true }).lean();
+    if (doc) return publicUser(fromDoc(doc));
+    // Create new
+    doc = await User.create({ email: e, name, googleId });
+    return publicUser(fromDoc(doc));
+  }

@@ -1,6 +1,6 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 
 import { connectDB } from './config/db.js';
@@ -11,8 +11,6 @@ import carRoutes from './routes/cars.js';
 import trackRoutes from './routes/tracks.js';
 import raceRoutes from './routes/races.js';
 import cardRoutes from './routes/cards.js';
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;

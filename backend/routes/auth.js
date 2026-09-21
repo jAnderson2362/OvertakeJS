@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
-import { createUser, findUserByEmail, findUserById, normalizeEmail } from '../data/users.js';
+import axios from 'axios';
+import crypto from 'node:crypto';
+import { createUser, findUserByEmail, findUserById, normalizeEmail, findOrCreateByGoogle } from '../data/users.js';
 import { claimPlayer } from '../data/players.js';
 import { issueSession, clearSession, requireAuth } from '../auth/session.js';
 
@@ -9,6 +11,10 @@ const router = Router();
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ANON_ID = /^[A-Za-z0-9_-]{8,64}$/;
 const BCRYPT_ROUNDS = 10;
+
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const GOOGLE_REDIRECT_URI = `http://localhost:${process.env.PORT || 5000}/api/auth/google/callback`;
 
 /**
  * If the browser opened packs before signing in, it still sends its anonymous
@@ -82,6 +88,57 @@ router.get('/me', async (req, res) => {
   } catch (err) {
     console.error('Session lookup failed:', err);
     res.status(500).json({ error: 'Could not load your session.' });
+  }
+});
+
+router.get('/google', (req, res) => {
+  const state = crypto.randomBytes(16).toString('hex');
+  res.cookie('oauth_state', state, { httpOnly: true, maxAge: 600000 });
+
+  const params = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: GOOGLE_REDIRECT_URI,
+    response_type: 'code',
+    scope: 'email profile',
+    state,
+  });
+
+  res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
+});
+
+router.get('/google/callback', async (req, res) => {
+  try {
+    const { code, state } = req.query;
+
+    if (state !== req.cookies?.oauth_state) {
+      return res.status(403).send('Invalid state');
+    }
+    res.clearCookie('oauth_state');
+
+    const { data } = await axios.post('https://oauth2.googleapis.com/token', {
+      code,
+      client_id: GOOGLE_CLIENT_ID,
+      client_secret: GOOGLE_CLIENT_SECRET,
+      redirect_uri: GOOGLE_REDIRECT_URI,
+      grant_type: 'authorization_code',
+    });
+
+    const payload = JSON.parse(
+      Buffer.from(data.id_token.split('.')[1], 'base64').toString()
+    );
+
+    const user = await findOrCreateByGoogle({
+      googleId: payload.sub,
+      email: payload.email,
+      name: payload.name,
+    });
+
+    await adoptAnonymous(req, user.id);
+    issueSession(res, user);
+    res.redirect('http://localhost:5173');
+  } catch (err) {
+    console.error('Google OAuth failed:', err);
+    res.status(500).send('OAuth failed');
   }
 });
 
