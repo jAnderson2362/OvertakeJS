@@ -4,6 +4,7 @@
 //
 // Figures are from manufacturer data / published instrumented tests:
 //   power       - peak crank power in kW
+//   torque      - peak torque in lb-ft (display only; the sim runs on power)
 //   mass        - curb weight (kg) + 75 kg driver
 //   dragArea    - Cd * A in m^2 (aerodynamic drag area)
 //   liftArea    - -Cl * A in m^2 (downforce area; 0 for cars with negligible downforce)
@@ -18,7 +19,7 @@ export const seedCars = [
   {
     id: 'mazda-mx5',
     name: 'Mazda MX-5 (ND)',
-    hp: 181, power: 135, mass: 1137,
+    hp: 181, power: 135, torque: 151, mass: 1137,
     dragArea: 0.66, liftArea: 0, tireGrip: 0.98,
     topSpeed: 219, drive: 'rwd', ev: false,
     fuelPerKm: 0.14, consistency: 0.0025,
@@ -27,7 +28,7 @@ export const seedCars = [
   {
     id: 'civic-type-r',
     name: 'Honda Civic Type R (FL5)',
-    hp: 315, power: 235, mass: 1504,
+    hp: 315, power: 235, torque: 310, mass: 1504,
     dragArea: 0.77, liftArea: 0.15, tireGrip: 1.06,
     topSpeed: 275, drive: 'fwd', ev: false,
     fuelPerKm: 0.17, consistency: 0.0025,
@@ -36,7 +37,7 @@ export const seedCars = [
   {
     id: 'gr-supra',
     name: 'Toyota GR Supra 3.0',
-    hp: 382, power: 285, mass: 1615,
+    hp: 382, power: 285, torque: 368, mass: 1615,
     dragArea: 0.68, liftArea: 0, tireGrip: 1.04,
     topSpeed: 250, drive: 'rwd', ev: false,
     fuelPerKm: 0.19, consistency: 0.003,
@@ -45,7 +46,7 @@ export const seedCars = [
   {
     id: 'bmw-m3-comp',
     name: 'BMW M3 Competition',
-    hp: 503, power: 375, mass: 1805,
+    hp: 503, power: 375, torque: 479, mass: 1805,
     dragArea: 0.76, liftArea: 0, tireGrip: 1.05,
     topSpeed: 290, drive: 'rwd', ev: false,
     fuelPerKm: 0.22, consistency: 0.003,
@@ -54,7 +55,7 @@ export const seedCars = [
   {
     id: 'porsche-911-gt3',
     name: 'Porsche 911 GT3 (992)',
-    hp: 502, power: 375, mass: 1510,
+    hp: 502, power: 375, torque: 346, mass: 1510,
     dragArea: 0.72, liftArea: 1.30, tireGrip: 1.22,
     topSpeed: 318, drive: 'rwd', ev: false,
     fuelPerKm: 0.21, consistency: 0.002,
@@ -63,7 +64,7 @@ export const seedCars = [
   {
     id: 'cayman-gt4-rs',
     name: 'Porsche Cayman GT4 RS',
-    hp: 493, power: 368, mass: 1490,
+    hp: 493, power: 368, torque: 331, mass: 1490,
     dragArea: 0.74, liftArea: 1.10, tireGrip: 1.21,
     topSpeed: 315, drive: 'rwd', ev: false,
     fuelPerKm: 0.21, consistency: 0.002,
@@ -72,7 +73,7 @@ export const seedCars = [
   {
     id: 'corvette-z06',
     name: 'Chevrolet Corvette Z06',
-    hp: 670, power: 500, mass: 1636,
+    hp: 670, power: 500, torque: 460, mass: 1636,
     dragArea: 0.86, liftArea: 0.90, tireGrip: 1.18,
     topSpeed: 313, drive: 'rwd', ev: false,
     fuelPerKm: 0.24, consistency: 0.003,
@@ -81,7 +82,7 @@ export const seedCars = [
   {
     id: 'ferrari-296',
     name: 'Ferrari 296 GTB',
-    hp: 819, power: 610, mass: 1545,
+    hp: 819, power: 610, torque: 546, mass: 1545,
     dragArea: 0.73, liftArea: 1.00, tireGrip: 1.18,
     topSpeed: 330, drive: 'rwd', ev: false,
     fuelPerKm: 0.23, consistency: 0.0025,
@@ -90,7 +91,7 @@ export const seedCars = [
   {
     id: 'huracan-evo',
     name: 'Lamborghini Huracán EVO',
-    hp: 631, power: 470, mass: 1497,
+    hp: 631, power: 470, torque: 443, mass: 1497,
     dragArea: 0.78, liftArea: 0.40, tireGrip: 1.15,
     topSpeed: 325, drive: 'awd', ev: false,
     fuelPerKm: 0.25, consistency: 0.003,
@@ -99,7 +100,7 @@ export const seedCars = [
   {
     id: 'gtr-nismo',
     name: 'Nissan GT-R Nismo',
-    hp: 600, power: 447, mass: 1795,
+    hp: 600, power: 447, torque: 481, mass: 1795,
     dragArea: 0.83, liftArea: 0.35, tireGrip: 1.12,
     topSpeed: 315, drive: 'awd', ev: false,
     fuelPerKm: 0.24, consistency: 0.003,
@@ -108,7 +109,7 @@ export const seedCars = [
   {
     id: 'mclaren-720s',
     name: 'McLaren 720S',
-    hp: 710, power: 530, mass: 1494,
+    hp: 710, power: 530, torque: 568, mass: 1494,
     dragArea: 0.66, liftArea: 0.60, tireGrip: 1.17,
     topSpeed: 341, drive: 'rwd', ev: false,
     fuelPerKm: 0.23, consistency: 0.003,
@@ -117,7 +118,7 @@ export const seedCars = [
   {
     id: 'model-s-plaid',
     name: 'Tesla Model S Plaid',
-    hp: 1020, power: 760, mass: 2237,
+    hp: 1020, power: 760, torque: 1050, mass: 2237,
     dragArea: 0.58, liftArea: 0, tireGrip: 1.04,
     topSpeed: 322, drive: 'awd', ev: true,
     fuelPerKm: 0, consistency: 0.002,

@@ -8,7 +8,8 @@
 import { getCatalog } from './catalog.js';
 import { PART_SLOTS } from '../data/cards.js';
 import { getCarById, getTrackById } from '../data/store.js';
-import { solveSpeedProfile, accelEnvelope } from '../sim/lapsim.js';
+import { solveSpeedProfile } from '../sim/lapsim.js';
+import { performanceCard, timeTo, stoppingDistance } from '../sim/performance.js';
 
 export const SLOTS = Object.keys(PART_SLOTS);
 export const MAX_BUILDS = 12;
@@ -32,10 +33,11 @@ export function applyParts(base, parts) {
   car.dragArea = Math.max(car.dragArea, 0.2);
   car.liftArea = Math.max(car.liftArea, 0);
 
-  // hp tracks power. Top speed is drag limited (P = ½ρ·CdA·v³), so it moves
-  // with the cube root of wheel power over drag area.
+  // hp and torque track power. Top speed is drag limited (P = ½ρ·CdA·v³), so
+  // it moves with the cube root of wheel power over drag area.
   const powerRatio = car.power / base.power;
   car.hp = base.hp * powerRatio;
+  car.torque = base.torque * powerRatio;
   car.topSpeed = base.topSpeed
     * Math.cbrt((powerRatio * car.driveline * base.dragArea) / car.dragArea);
   return car;
@@ -50,43 +52,23 @@ function referenceLap(car) {
 
 const KMH_100 = 100 / 3.6;
 
-/** Standing start to 100 km/h on a straight, in seconds. */
-function zeroToHundred(car) {
-  const dt = 0.005;
-  let v = 0, t = 0;
-  while (v < KMH_100 && t < 60) {
-    v += Math.max(accelEnvelope(car, car.mass, car.tireGrip, v).accel, 0.01) * dt;
-    t += dt;
-  }
-  return t;
-}
-
-/** Stopping distance from 100 km/h, in metres. */
-function brakingDistance(car) {
-  const dt = 0.001;
-  let v = KMH_100, d = 0;
-  while (v > 0) {
-    v -= accelEnvelope(car, car.mass, car.tireGrip, v).brake * dt;
-    d += Math.max(v, 0) * dt;
-  }
-  return d;
-}
-
 function summary(car) {
   const lap = referenceLap(car);
   return {
     hp: Math.round(car.hp),
+    torque: Math.round(car.torque),
     mass: Math.round(car.mass),
     hpPerTonne: Math.round((car.hp / car.mass) * 1000),
     tireGrip: round(car.tireGrip, 3),
     cornering: Math.round((car.cornerGrip ?? 1) * 100), // % of stock
-    zeroToHundred: round(zeroToHundred(car), 2),
-    braking: round(brakingDistance(car), 1),
+    zeroToHundred: round(timeTo(car, KMH_100), 2),
+    braking: round(stoppingDistance(car, KMH_100), 1),
     liftArea: round(car.liftArea, 2),
     dragArea: round(car.dragArea, 3),
     topSpeed: Math.round(car.topSpeed),
     drive: car.drive.toUpperCase(),
     lapTime: lap == null ? null : round(lap, 3),
+    performance: performanceCard(car),
   };
 }
 

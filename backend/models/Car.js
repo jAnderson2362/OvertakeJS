@@ -6,6 +6,7 @@ const carSchema = new mongoose.Schema(
     name: { type: String, required: true },
     hp: { type: Number, required: true },
     power: { type: Number, required: true },      // kW
+    torque: { type: Number },                     // lb-ft (display only)
     mass: { type: Number, required: true },       // kg incl. driver
     dragArea: { type: Number, required: true },   // Cd * A, m^2
     liftArea: { type: Number, default: 0 },       // -Cl * A (downforce), m^2

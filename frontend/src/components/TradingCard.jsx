@@ -180,7 +180,7 @@ export default function TradingCard({ card, count = 0, owned = true, className =
                   <Stat label="Power" value={`${card.stats.hp} hp`} />
                   <Stat label="Weight" value={`${card.stats.mass} kg`} />
                   <Stat label="Top speed" value={`${card.stats.topSpeed} km/h`} />
-                  <Stat label="Grip" value={`${card.stats.tireGrip.toFixed(2)} μ`} />
+                  <Stat label="Grip" value={`${card.stats.tireGrip.toFixed(2)} g`} />
                 </div>
               </>
             ) : (

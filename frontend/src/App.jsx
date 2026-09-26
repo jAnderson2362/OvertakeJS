@@ -27,11 +27,13 @@ function pickerCarFromBuild(build, stockById) {
     country: base?.country,
     ev: base?.ev ?? false,
     hp: t.hp,
+    torque: t.torque,
     mass: t.mass,
     topSpeed: t.topSpeed,
     tireGrip: t.tireGrip,
     drive: t.drive,
     powerToWeight: t.hp / t.mass,
+    performance: t.performance,
   };
 }
 

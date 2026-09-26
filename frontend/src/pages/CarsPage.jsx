@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence, LayoutGroup } from 'motion/react';
 import StepHeader from '../components/StepHeader.jsx';
+import CarDetail from '../components/CarDetail.jsx';
 import {
   SearchBox, ChipGroup, ViewToggle, SortSelect, PrimaryButton, EmptyState,
 } from '../components/ui.jsx';
@@ -11,6 +12,7 @@ export const MIN_CARS = 2;
 const SORT_OPTIONS = [
   { value: 'name', label: 'Name' },
   { value: 'hp', label: 'Power' },
+  { value: 'torque', label: 'Torque' },
   { value: 'hpPerTonne', label: 'Power to weight' },
   { value: 'mass', label: 'Weight' },
   { value: 'topSpeed', label: 'Top speed' },
@@ -23,6 +25,7 @@ const COLUMNS = [
   { key: 'name', label: 'Car' },
   { key: 'class', label: 'Class' },
   { key: 'hp', label: 'hp', numeric: true },
+  { key: 'torque', label: 'lb-ft', numeric: true },
   { key: 'mass', label: 'kg', numeric: true },
   { key: 'hpPerTonne', label: 'hp/t', numeric: true },
   { key: 'topSpeed', label: 'km/h', numeric: true },
@@ -65,27 +68,56 @@ function StatBar({ label, value, max, unit }) {
   );
 }
 
-function CarCard({ car, slot, disabled, onToggle, maxima }) {
-  const selected = slot != null;
+/** "Stats" pill that opens the detail card without toggling selection. */
+function StatsButton({ onClick, className = '' }) {
   return (
-    <motion.button
-      layout
+    <button
       type="button"
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      onKeyDown={(e) => e.stopPropagation()}
+      className={`group/stats inline-flex items-center gap-1.5 h-8 rounded-full border border-line bg-bg-deep/60 pl-2.5 pr-3 text-xs font-medium text-ink hover:bg-highlight hover:border-highlight hover:text-highlight-fg transition-colors ${className}`}
+    >
+      <svg
+        className="w-3.5 h-3.5 text-highlight-soft group-hover/stats:text-highlight-fg transition-colors"
+        viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"
+        aria-hidden
+      >
+        <path d="M5 20v-6M12 20V4M19 20v-10" />
+      </svg>
+      Stats
+    </button>
+  );
+}
+
+// The card is a div with button semantics (not a <button>) so it can hold
+// the Stats button inside it.
+function CarCard({ car, slot, disabled, onToggle, onStats, maxima }) {
+  const selected = slot != null;
+  const onKeyDown = (e) => {
+    if (disabled || e.target !== e.currentTarget) return;
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); }
+  };
+  return (
+    <motion.div
+      layout
+      role="button"
+      tabIndex={disabled ? -1 : 0}
       initial={{ opacity: 0, scale: 0.92, y: 12 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.92, y: -8, transition: { duration: 0.15 } }}
       transition={spring}
       whileHover={disabled ? undefined : { y: -4 }}
       whileTap={disabled ? undefined : { scale: 0.98 }}
-      onClick={onToggle}
-      disabled={disabled}
+      onClick={disabled ? undefined : onToggle}
+      onKeyDown={onKeyDown}
       aria-pressed={selected}
-      className={`relative text-left rounded-xl border p-4 overflow-hidden transition-colors ${
+      aria-disabled={disabled}
+      className={`relative text-left rounded-xl border p-4 overflow-hidden transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-highlight/60 ${
         selected
-          ? 'border-highlight/80 bg-accent/25 shadow-xl shadow-accent/20'
+          ? 'border-highlight/80 bg-accent/25 shadow-xl shadow-accent/20 cursor-pointer'
           : disabled
             ? 'border-line/20 bg-surface/30 opacity-40 cursor-not-allowed'
-            : 'border-line/35 bg-surface/60 hover:border-line hover:bg-surface'
+            : 'border-line/35 bg-surface/60 hover:border-line hover:bg-surface cursor-pointer'
       }`}
     >
       {/* Selected glow sweep */}
@@ -104,10 +136,11 @@ function CarCard({ car, slot, disabled, onToggle, maxima }) {
 
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="font-display text-xl leading-none truncate">{car.name}</span>
+          {/* The Custom badge flows inline after the last word, so long names wrap. */}
+          <div className="font-display text-xl leading-tight line-clamp-2">
+            {car.name}
             {car.custom && (
-              <span className="shrink-0 translate-y-0.5 rounded px-1 py-px border border-highlight-soft/50 text-highlight-soft text-[11px] leading-tight">
+              <span className="ml-2 inline-block align-middle -translate-y-px rounded px-1 py-px border border-highlight-soft/50 text-highlight-soft font-sans text-[11px] leading-tight">
                 Custom
               </span>
             )}
@@ -122,56 +155,56 @@ function CarCard({ car, slot, disabled, onToggle, maxima }) {
                 <span>{car.year}</span>
               </>
             )}
-            {car.ev && (
-              <span className="rounded px-1 py-px bg-highlight/20 text-highlight normal-case tracking-normal">EV</span>
-            )}
           </div>
         </div>
-        <AnimatePresence mode="popLayout" initial={false}>
-          {selected ? (
-            <motion.span
-              key="slot"
-              initial={{ scale: 0, rotate: -90 }}
-              animate={{ scale: 1, rotate: 0 }}
-              exit={{ scale: 0, rotate: 90 }}
-              transition={spring}
-              className="shrink-0 w-8 h-8 rounded-full bg-highlight text-highlight-fg font-display text-lg leading-none flex items-center justify-center shadow-md shadow-highlight/30"
-              title={`Grid slot ${slot + 1}`}
-            >
-              {slot + 1}
-            </motion.span>
-          ) : (
-            <motion.span
-              key="plus"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="shrink-0 w-8 h-8 rounded-full border border-line/50 text-muted flex items-center justify-center text-lg"
-            >
-              +
-            </motion.span>
-          )}
-        </AnimatePresence>
+        <div className="shrink-0 flex items-center gap-2">
+          <StatsButton onClick={onStats} />
+          <AnimatePresence mode="popLayout" initial={false}>
+            {selected ? (
+              <motion.span
+                key="slot"
+                initial={{ scale: 0, rotate: -90 }}
+                animate={{ scale: 1, rotate: 0 }}
+                exit={{ scale: 0, rotate: 90 }}
+                transition={spring}
+                className="shrink-0 w-8 h-8 rounded-full bg-highlight text-highlight-fg font-display text-lg leading-none flex items-center justify-center shadow-md shadow-highlight/30"
+                title={`Grid slot ${slot + 1}`}
+              >
+                {slot + 1}
+              </motion.span>
+            ) : (
+              <motion.span
+                key="plus"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="shrink-0 w-8 h-8 rounded-full border border-line/50 text-muted flex items-center justify-center text-lg"
+              >
+                +
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       <div className="relative mt-4 grid grid-cols-2 gap-x-4 gap-y-2.5">
         <StatBar label="Power" value={car.hp} max={maxima.hp} unit="hp" />
-        <StatBar label="Power / weight" value={car.hpPerTonne} max={maxima.hpPerTonne} unit="hp/t" />
+        <StatBar label="Torque" value={car.torque} max={maxima.torque} unit="lb-ft" />
         <StatBar label="Top speed" value={car.topSpeed} max={maxima.topSpeed} unit="km/h" />
-        <StatBar label="Grip" value={car.tireGrip.toFixed(2)} max={maxima.tireGrip} unit="μ" />
+        <StatBar label="Grip" value={car.tireGrip.toFixed(2)} max={maxima.tireGrip} unit="g" />
       </div>
 
       <div className="relative mt-3 flex items-center justify-between text-[11px] text-ink/50">
         <span><span className="text-ink tabular-nums">{car.mass}</span> kg</span>
         <span className="uppercase tracking-wider">{car.drive}</span>
       </div>
-    </motion.button>
+    </motion.div>
   );
 }
 
 /* ---------- Table view ---------- */
 
-function CarTable({ cars, slotOf, disabled, onToggle, sort, onSort }) {
+function CarTable({ cars, slotOf, disabled, onToggle, onStats, sort, onSort }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -200,6 +233,7 @@ function CarTable({ cars, slotOf, disabled, onToggle, sort, onSort }) {
                   </th>
                 );
               })}
+              <th className="px-3 py-2.5"><span className="sr-only">Details</span></th>
             </tr>
           </thead>
           <tbody>
@@ -251,6 +285,9 @@ function CarTable({ cars, slotOf, disabled, onToggle, sort, onSort }) {
                         {col.key === 'drive' && car.ev && <span className="ml-1.5 text-highlight text-[10px]">EV</span>}
                       </td>
                     ))}
+                    <td className="px-3 py-2 text-right">
+                      <StatsButton onClick={() => onStats(car.id)} />
+                    </td>
                   </motion.tr>
                 );
               })}
@@ -371,12 +408,14 @@ export default function CarsPage({ cars, selected, onChange, onNext }) {
   const [drive, setDrive] = useState('all');
   const [view, setView] = useState('cards');
   const [sort, setSort] = useState({ key: 'name', dir: 'asc' });
+  const [detailId, setDetailId] = useState(null); // car whose stats card is open
 
   const all = useMemo(() => cars.map(decorate), [cars]);
+  const detailCar = all.find((c) => c.id === detailId);
 
   const maxima = useMemo(() => ({
     hp: Math.max(...all.map((c) => c.hp)),
-    hpPerTonne: Math.max(...all.map((c) => c.hpPerTonne)),
+    torque: Math.max(...all.map((c) => c.torque)),
     topSpeed: Math.max(...all.map((c) => c.topSpeed)),
     tireGrip: Math.max(...all.map((c) => c.tireGrip)),
   }), [all]);
@@ -498,6 +537,7 @@ export default function CarsPage({ cars, selected, onChange, onNext }) {
                     slot={slotOf(car.id)}
                     disabled={full && slotOf(car.id) == null}
                     onToggle={() => toggle(car.id)}
+                    onStats={() => setDetailId(car.id)}
                     maxima={maxima}
                   />
                 ))
@@ -521,6 +561,7 @@ export default function CarsPage({ cars, selected, onChange, onNext }) {
                 slotOf={slotOf}
                 disabled={full}
                 onToggle={toggle}
+                onStats={setDetailId}
                 sort={sort}
                 onSort={sortByColumn}
               />
@@ -537,6 +578,19 @@ export default function CarsPage({ cars, selected, onChange, onNext }) {
         onNext={onNext}
         ready={ready}
       />
+
+      <AnimatePresence>
+        {detailCar && (
+          <CarDetail
+            key="detail"
+            car={detailCar}
+            selected={slotOf(detailCar.id) != null}
+            canAdd={!full}
+            onToggle={() => toggle(detailCar.id)}
+            onClose={() => setDetailId(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

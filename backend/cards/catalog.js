@@ -36,6 +36,7 @@ export function getCatalog() {
     ev: !!c.ev,
     stats: {
       hp: c.hp,
+      torque: c.torque,
       mass: c.mass,
       topSpeed: c.topSpeed,
       tireGrip: c.tireGrip,

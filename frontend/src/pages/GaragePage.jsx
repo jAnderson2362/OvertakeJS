@@ -24,11 +24,12 @@ const byRarityThenName = (a, b) => rarityRank(b.rarity) - rarityRank(a.rarity) |
 // Which direction is an improvement, and how many decimals to show.
 const STAT_ROWS = [
   { key: 'hp', label: 'Power', unit: 'hp', better: 'up' },
+  { key: 'torque', label: 'Torque', unit: 'lb-ft', better: 'up' },
   { key: 'mass', label: 'Weight', unit: 'kg', better: 'down' },
   { key: 'hpPerTonne', label: 'Power to weight', unit: 'hp/t', better: 'up' },
   { key: 'zeroToHundred', label: '0 to 100 km/h', unit: 's', better: 'down', dp: 2 },
   { key: 'braking', label: '100 to 0 braking', unit: 'm', better: 'down', dp: 1 },
-  { key: 'tireGrip', label: 'Tire grip', unit: 'μ', better: 'up', dp: 3 },
+  { key: 'tireGrip', label: 'Tire grip', unit: 'g', better: 'up', dp: 3 },
   { key: 'cornering', label: 'Cornering', unit: '%', better: 'up' },
   { key: 'liftArea', label: 'Downforce', unit: 'm²', better: 'up', dp: 2 },
   { key: 'dragArea', label: 'Drag', unit: 'm²', better: 'down', dp: 3 },
@@ -164,7 +165,7 @@ function CarOption({ card, selected, spare, onPick }) {
         {RARITY_LABEL[card.rarity]} · {card.class}
       </div>
       <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-ink/60 tabular-nums">
-        <span>{card.stats.hp} hp · {card.stats.mass} kg</span>
+        <span>{card.stats.hp} hp · {card.stats.torque} lb-ft · {card.stats.mass} kg</span>
         <SpareTag spare={spare} />
       </div>
     </button>
