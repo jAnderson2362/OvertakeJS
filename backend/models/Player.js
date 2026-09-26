@@ -1,8 +1,7 @@
 import mongoose from 'mongoose';
 
-// A player's card collection and credit balance. `playerId` is currently a
-// browser-generated id sent in the X-Player-Id header; once auth exists it
-// becomes the user id and nothing else here needs to change.
+// A player's card collection and credit balance. `playerId` is the signed-in
+// user's id.
 const ownedCardSchema = new mongoose.Schema(
   {
     cardId: { type: String, required: true }, // 'car:<carId>' | 'part:<partId>'

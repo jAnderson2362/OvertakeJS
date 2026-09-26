@@ -55,24 +55,6 @@ export async function loadPlayer(playerId) {
 }
 
 /**
- * Move a collection from one id to another (anonymous browser id -> user id
- * on first sign-in). Only happens when the target has no collection yet, so
- * an existing account never gets overwritten. Returns true if moved.
- */
-export async function claimPlayer(fromId, toId) {
-  if (!isDbReady()) {
-    if (!memory.has(fromId) || memory.has(toId)) return false;
-    const p = memory.get(fromId);
-    memory.delete(fromId);
-    memory.set(toId, { ...p, playerId: toId });
-    return true;
-  }
-  if (await Player.exists({ playerId: toId })) return false;
-  const res = await Player.updateOne({ playerId: fromId }, { $set: { playerId: toId } });
-  return res.modifiedCount === 1;
-}
-
-/**
  * Persist a mutated player. `expect` is the credits + lastDailyClaim the
  * caller loaded; if the stored values differ, nothing is written.
  */

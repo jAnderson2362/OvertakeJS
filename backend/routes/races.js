@@ -1,9 +1,19 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { getCarById, getTrackById, isDbReady } from '../data/store.js';
 import { simulateRace } from '../sim/race.js';
 import Race from '../models/Race.js';
 
 const router = Router();
+
+// Each simulation is CPU work plus a stored race, and needs no sign-in.
+const simulateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 20,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { error: 'Too many races at once. Wait a moment and try again.' },
+});
 
 // Recent race history (empty when running without a database).
 router.get('/', async (req, res) => {
@@ -33,7 +43,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/simulate', async (req, res) => {
+router.post('/simulate', simulateLimiter, async (req, res) => {
   const { carIds, trackId, laps: rawLaps, seed: rawSeed } = req.body ?? {};
 
   if (!Array.isArray(carIds) || carIds.length < 2 || carIds.length > 8) {

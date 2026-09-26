@@ -1,5 +1,3 @@
-import { getPlayerId } from './player.js';
-
 async function request(path, options) {
   const res = await fetch(path, options);
   if (!res.ok) {
@@ -26,20 +24,17 @@ export const simulateRace = (carIds, trackId, laps) =>
 /* ---------- Auth ---------- */
 
 // The session lives in an httpOnly cookie, sent automatically on same-origin
-// requests. Sign-in and sign-up also send the anonymous browser id so a
-// collection opened before signing up moves onto the account.
-const postJson = (path, body, headers = {}) =>
+// requests.
+const postJson = (path, body) =>
   request(path, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...headers },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
 
-const anonHeader = () => ({ 'X-Player-Id': getPlayerId() });
-
 export const fetchMe = () => request('/api/auth/me');
-export const register = (email, password, name) => postJson('/api/auth/register', { email, password, name }, anonHeader());
-export const login = (email, password) => postJson('/api/auth/login', { email, password }, anonHeader());
+export const register = (email, password, name) => postJson('/api/auth/register', { email, password, name });
+export const login = (email, password) => postJson('/api/auth/login', { email, password });
 export const logout = () => request('/api/auth/logout', { method: 'POST' });
 
 /* ---------- Cards and packs ---------- */
