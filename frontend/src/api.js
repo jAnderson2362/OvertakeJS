@@ -43,3 +43,18 @@ export const fetchCardCatalog = () => request('/api/cards/catalog');
 export const fetchMyCards = () => request('/api/cards/me');
 export const claimDailyPack = () => request('/api/cards/packs/daily', { method: 'POST' });
 export const buyPacks = (packId, quantity) => postJson('/api/cards/packs/buy', { packId, quantity });
+
+/* ---------- Garage (custom builds) ---------- */
+
+const sendJson = (method, path, body) =>
+  request(path, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+export const fetchGarage = () => request('/api/garage');
+export const previewBuild = (carCardId, parts) => postJson('/api/garage/preview', { carCardId, parts });
+export const createBuild = (build) => postJson('/api/garage', build);
+export const updateBuild = (id, build) => sendJson('PUT', `/api/garage/${encodeURIComponent(id)}`, build);
+export const deleteBuild = (id) => request(`/api/garage/${encodeURIComponent(id)}`, { method: 'DELETE' });

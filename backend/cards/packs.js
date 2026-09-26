@@ -1,7 +1,7 @@
 // Pack opening: weighted rarity rolls with an optional floor guarantee, then
-// a uniform pick within the rolled tier.
+// car or part (CAR_CARD_SHARE), then a uniform pick within that pool.
 
-import { RARITIES } from '../data/cards.js';
+import { RARITIES, CAR_CARD_SHARE } from '../data/cards.js';
 import { getCatalog, rarityRank } from './catalog.js';
 
 function weightedPick(weights, rand) {
@@ -39,17 +39,19 @@ function rollRarities(pack, rand) {
  * the reveal builds up). Each entry is a catalog card.
  */
 export function openPack(pack, rand = Math.random) {
-  const { byRarity } = getCatalog();
+  const { pools } = getCatalog();
   const rarities = rollRarities(pack, rand);
   const pulls = rarities.map((rarity) => {
-    // Fall back down the tiers if a tier somehow has no cards.
-    let pool = byRarity[rarity];
-    let rank = rarityRank(rarity);
-    while ((!pool || pool.length === 0) && rank > 0) {
-      rank -= 1;
-      pool = byRarity[RARITIES[rank].id];
+    const type = rand() < CAR_CARD_SHARE ? 'car' : 'part';
+    const other = type === 'car' ? 'part' : 'car';
+    // If a tier has none of the rolled type, take the other type, then fall
+    // back down the tiers.
+    for (let rank = rarityRank(rarity); rank >= 0; rank--) {
+      const tier = RARITIES[rank].id;
+      const pool = pools[type][tier]?.length ? pools[type][tier] : pools[other][tier];
+      if (pool?.length) return pool[Math.floor(rand() * pool.length)];
     }
-    return pool[Math.floor(rand() * pool.length)];
+    throw new Error('Card catalog is empty.');
   });
   return pulls.sort((a, b) => rarityRank(a.rarity) - rarityRank(b.rarity));
 }

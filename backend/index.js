@@ -12,6 +12,7 @@ import carRoutes from './routes/cars.js';
 import trackRoutes from './routes/tracks.js';
 import raceRoutes from './routes/races.js';
 import cardRoutes from './routes/cards.js';
+import garageRoutes from './routes/garage.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -39,6 +40,7 @@ app.use('/api/cars', carRoutes);
 app.use('/api/tracks', trackRoutes);
 app.use('/api/races', raceRoutes);
 app.use('/api/cards', cardRoutes);
+app.use('/api/garage', garageRoutes);
 
 const connected = await connectDB();
 // The in-memory fallback loses every account on restart; never run on it live.

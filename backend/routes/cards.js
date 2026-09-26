@@ -64,8 +64,8 @@ function grantCards(player, pulls, now) {
 
 // Everything a client needs to render cards and packs.
 router.get('/catalog', (req, res) => {
-  const { rarities, packs, slots, cards } = getCatalog();
-  res.json({ rarities, slots, packs: packs.map(publicPack), cards });
+  const { rarities, packs, categories, slots, cards } = getCatalog();
+  res.json({ rarities, categories, slots, packs: packs.map(publicPack), cards });
 });
 
 router.get('/me', requirePlayer, async (req, res) => {

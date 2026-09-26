@@ -55,7 +55,16 @@ function CarArt({ color }) {
   );
 }
 
-const PART_ICON = {
+// One icon per part category (data/cards.js PART_CATEGORIES).
+export const PART_ICON = {
+  engine: <path d="M13 2 3 14h7l-1 8 10-12h-7z" />,
+  platform: <path d="M12 2 4 5v6c0 5 3.5 9.5 8 11 4.5-1.5 8-6 8-11V5z" />,
+  drivetrain: (
+    <>
+      <circle cx="12" cy="12" r="3.5" />
+      <path d="M12 2v3.5M12 18.5V22M2 12h3.5M18.5 12H22M4.9 4.9l2.5 2.5M16.6 16.6l2.5 2.5M4.9 19.1l2.5-2.5M16.6 7.4l2.5-2.5" />
+    </>
+  ),
   tires: (
     <>
       <circle cx="12" cy="12" r="9" />
@@ -63,17 +72,16 @@ const PART_ICON = {
       <path d="M12 3v5.5M12 15.5V21M3 12h5.5M15.5 12H21" />
     </>
   ),
-  engine: <path d="M13 2 3 14h7l-1 8 10-12h-7z" />,
-  chassis: <path d="M12 2 4 5v6c0 5 3.5 9.5 8 11 4.5-1.5 8-6 8-11V5z" />,
   aero: (
     <>
       <path d="M3 14h18l-4-6H7z" />
       <path d="M12 14v6M8 20h8" />
     </>
   ),
+  conversion: <path d="M4 8h14l-4-4M20 16H6l4 4" />,
 };
 
-function PartArt({ slot, color }) {
+function PartArt({ category, color }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -85,7 +93,7 @@ function PartArt({ slot, color }) {
       strokeLinejoin="round"
       aria-hidden
     >
-      {PART_ICON[slot] ?? PART_ICON.engine}
+      {PART_ICON[category] ?? PART_ICON.engine}
     </svg>
   );
 }
@@ -141,7 +149,7 @@ export default function TradingCard({ card, count = 0, owned = true, className =
           {/* Top strip */}
           <div className="flex items-center justify-between px-3 pt-2.5 text-[10px] uppercase tracking-widest leading-none">
             <span style={{ color }}>{RARITY_LABEL[card.rarity]}</span>
-            <span className="text-ink/45">{card.type === 'car' ? 'Car' : card.slotLabel}</span>
+            <span className="text-ink/45">{card.type === 'car' ? 'Car' : card.categoryLabel?.split(' ')[0]}</span>
           </div>
 
           {/* Art */}
@@ -156,7 +164,7 @@ export default function TradingCard({ card, count = 0, owned = true, className =
               className="absolute inset-x-3 bottom-0 h-px"
               style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)`, opacity: 0.5 }}
             />
-            {card.type === 'car' ? <CarArt color={color} /> : <PartArt slot={card.slot} color={color} />}
+            {card.type === 'car' ? <CarArt color={color} /> : <PartArt category={card.category} color={color} />}
           </div>
 
           {/* Body */}
@@ -177,7 +185,7 @@ export default function TradingCard({ card, count = 0, owned = true, className =
               </>
             ) : (
               <>
-                <div className="mt-0.5 text-[10px] uppercase tracking-wider text-ink/45">{card.slotLabel} upgrade</div>
+                <div className="mt-0.5 text-[10px] uppercase tracking-wider text-ink/45 truncate">{card.slotLabel}</div>
                 <div className="mt-2 rounded-lg border px-2.5 py-2 text-center" style={{ borderColor: `color-mix(in oklab, ${color} 45%, transparent)` }}>
                   <div className="font-display text-lg leading-none" style={{ color }}>{card.effect}</div>
                 </div>

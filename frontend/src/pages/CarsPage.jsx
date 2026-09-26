@@ -65,7 +65,7 @@ function StatBar({ label, value, max, unit }) {
   );
 }
 
-function CarCard({ car, slot, disabled, onToggle, maxima, owned }) {
+function CarCard({ car, slot, disabled, onToggle, maxima }) {
   const selected = slot != null;
   return (
     <motion.button
@@ -111,14 +111,6 @@ function CarCard({ car, slot, disabled, onToggle, maxima, owned }) {
             <span>{car.year}</span>
             {car.ev && (
               <span className="rounded px-1 py-px bg-highlight/20 text-highlight normal-case tracking-normal">EV</span>
-            )}
-            {owned && (
-              <span
-                className="rounded px-1 py-px border border-highlight-soft/50 text-highlight-soft normal-case tracking-normal"
-                title="You hold this car's card"
-              >
-                Card owned
-              </span>
             )}
           </div>
         </div>
@@ -360,7 +352,7 @@ function GridTray({ cars, selected, onRemove, onClear, onNext, ready }) {
 
 /* ---------- Page ---------- */
 
-export default function CarsPage({ cars, selected, onChange, onNext, ownedCarIds }) {
+export default function CarsPage({ cars, selected, onChange, onNext }) {
   const [query, setQuery] = useState('');
   const [carClass, setCarClass] = useState('all');
   const [drive, setDrive] = useState('all');
@@ -493,7 +485,6 @@ export default function CarsPage({ cars, selected, onChange, onNext, ownedCarIds
                     disabled={full && slotOf(car.id) == null}
                     onToggle={() => toggle(car.id)}
                     maxima={maxima}
-                    owned={ownedCarIds?.has(car.id)}
                   />
                 ))
               )}

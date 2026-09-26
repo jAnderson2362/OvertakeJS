@@ -200,7 +200,7 @@ function PackCard({ pack, credits, daily, busy, onOpen, index }) {
 
 /* ---------- Page ---------- */
 
-export default function CardsPage({ onProfile }) {
+export default function CardsPage() {
   const { user, loading } = useAuth();
   if (loading) {
     return (
@@ -210,10 +210,10 @@ export default function CardsPage({ onProfile }) {
     );
   }
   if (!user) return <Navigate to="/login?next=/cards" replace />;
-  return <CardsPageInner onProfile={onProfile} user={user} />;
+  return <CardsPageInner user={user} />;
 }
 
-function CardsPageInner({ onProfile, user }) {
+function CardsPageInner({ user }) {
   const navigate = useNavigate();
   const [catalog, setCatalog] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -243,7 +243,6 @@ function CardsPageInner({ onProfile, user }) {
 
   const applyResult = (result) => {
     setProfile(result.player);
-    onProfile?.(result.player);
     setOpening(result);
   };
 

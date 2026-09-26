@@ -83,6 +83,9 @@ function UserChip() {
             <Link to="/cards" role="menuitem" onClick={() => setOpen(false)} className="block rounded-lg px-3 py-2 text-sm text-ink/80 hover:bg-line/30 hover:text-ink transition-colors">
               My collection
             </Link>
+            <Link to="/garage" role="menuitem" onClick={() => setOpen(false)} className="block rounded-lg px-3 py-2 text-sm text-ink/80 hover:bg-line/30 hover:text-ink transition-colors">
+              Garage
+            </Link>
             <button
               type="button"
               role="menuitem"
@@ -130,6 +133,37 @@ function CardsLink() {
   );
 }
 
+/** Pill link to the garage (custom builds): a wrench badge that fills red on hover. */
+function GarageLink() {
+  return (
+    <MotionLink
+      to="/garage"
+      whileHover="hover"
+      whileTap={{ scale: 0.97 }}
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: 0.1 }}
+      className={pill}
+    >
+      <span className={badge}>
+        <motion.svg
+          variants={{ hover: { rotate: 20, scale: 1.1 } }}
+          transition={spring}
+          className="w-3.5 h-3.5 text-ink group-hover:text-highlight-fg transition-colors"
+          viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          aria-hidden
+        >
+          <path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z" />
+        </motion.svg>
+      </span>
+      <span className="flex flex-col leading-none text-left">
+        <span className="text-[10px] uppercase tracking-widest text-ink/40 group-hover:text-ink/60 transition-colors">Build</span>
+        <span className="font-display text-base mt-0.5">Garage</span>
+      </span>
+    </MotionLink>
+  );
+}
+
 export default function StepHeader({ step }) {
   return (
     <header className="mb-8 flex items-start justify-between gap-6 flex-wrap">
@@ -148,6 +182,7 @@ export default function StepHeader({ step }) {
 
       <div className="flex flex-col items-end gap-4">
         <div className="flex items-center gap-2">
+          <GarageLink />
           <CardsLink />
           <UserChip />
         </div>

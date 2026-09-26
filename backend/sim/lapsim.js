@@ -18,6 +18,18 @@ const CRR = 0.013;   // rolling resistance coefficient
 import { DRIVE_TRACTION } from '../data/cars.js';
 
 /**
+ * Driveline efficiency and the share of grip usable under power, including
+ * upgrade multipliers (see data/cards.js). Stock cars don't set `driveline`
+ * or `traction`, so these reduce exactly to the stock values.
+ */
+function powertrain(car) {
+  return {
+    eff: Math.min(0.97, (car.ev ? 0.94 : 0.85) * (car.driveline ?? 1)),
+    driveFrac: Math.min(1.2, (DRIVE_TRACTION[car.drive] ?? 0.72) * (car.traction ?? 1)),
+  };
+}
+
+/**
  * Solve the speed profile for one car on one track under given conditions.
  *
  * @param centerline { curvature: Float64Array, spacing, length }
@@ -30,13 +42,14 @@ export function solveSpeedProfile(centerline, car, cond) {
   const n = curvature.length;
 
   const m = cond.mass;
-  const mu = cond.grip;
+  const mu = cond.grip;                        // tire grip
+  const muLat = mu * (car.cornerGrip ?? 1);    // cornering grip (suspension upgrades)
+  const brakeK = car.brake ?? 1;               // braking upgrades
   const q = 0.5 * RHO * (car.liftArea || 0);   // downforce = q * v^2
   const dragK = 0.5 * RHO * car.dragArea;      // drag = dragK * v^2
   const vmax = car.topSpeed / 3.6;
-  const eff = car.ev ? 0.94 : 0.85;            // driveline efficiency
+  const { eff, driveFrac } = powertrain(car);  // driveline efficiency, traction share
   const P = car.power * 1000 * eff;
-  const driveFrac = DRIVE_TRACTION[car.drive] ?? 0.72;
 
   // --- 1. Cornering speed ceiling ------------------------------------------
   // Lateral equilibrium: m v^2 |k| <= mu (m g + q v^2)
@@ -44,8 +57,8 @@ export function solveSpeedProfile(centerline, car, cond) {
   const vlim = new Float64Array(n);
   for (let i = 0; i < n; i++) {
     const k = Math.abs(curvature[i]);
-    const denom = m * k - mu * q;
-    vlim[i] = denom > 1e-9 ? Math.min(vmax, Math.sqrt((mu * m * G) / denom)) : vmax;
+    const denom = m * k - muLat * q;
+    vlim[i] = denom > 1e-9 ? Math.min(vmax, Math.sqrt((muLat * m * G) / denom)) : vmax;
   }
 
   // Normal-load acceleration including downforce, and the friction-ellipse
@@ -53,7 +66,7 @@ export function solveSpeedProfile(centerline, car, cond) {
   const gEff = (v) => G + (q * v * v) / m;
   const ellipse = (v, k) => {
     const aLat = v * v * Math.abs(k);
-    const aLatMax = mu * gEff(v);
+    const aLatMax = muLat * gEff(v);
     const r = aLat / aLatMax;
     return Math.sqrt(Math.max(0, 1 - r * r));
   };
@@ -79,7 +92,7 @@ export function solveSpeedProfile(centerline, car, cond) {
       const i = j % n;
       const iprev = (i - 1 + n) % n;
       const vi = Math.max(v[i], 0.5);
-      const aBrakeGrip = mu * gEff(vi) * ellipse(vi, curvature[i]);
+      const aBrakeGrip = mu * brakeK * gEff(vi) * ellipse(vi, curvature[i]);
       const aResist = (dragK * vi * vi + CRR * m * G) / m; // drag helps braking
       const a = aBrakeGrip + aResist;
       const cand = Math.sqrt(vi * vi + 2 * a * ds);
@@ -104,13 +117,12 @@ export function solveSpeedProfile(centerline, car, cond) {
 export function accelEnvelope(car, mass, grip, v) {
   const q = 0.5 * RHO * (car.liftArea || 0);
   const dragK = 0.5 * RHO * car.dragArea;
-  const eff = car.ev ? 0.94 : 0.85;
+  const { eff, driveFrac } = powertrain(car);
   const P = car.power * 1000 * eff;
-  const driveFrac = DRIVE_TRACTION[car.drive] ?? 0.72;
   const gE = G + (q * v * v) / mass;
   const aResist = (dragK * v * v + CRR * mass * G) / mass;
   return {
     accel: Math.min(driveFrac * grip * gE, P / (mass * Math.max(v, 3))) - aResist,
-    brake: grip * gE + aResist,
+    brake: grip * (car.brake ?? 1) * gE + aResist,
   };
 }

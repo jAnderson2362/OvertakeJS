@@ -3,7 +3,7 @@
 // serve) and shared by the pack opener and the API.
 
 import { getCars } from '../data/store.js';
-import { RARITIES, CAR_RARITY, PART_SLOTS, PACKS, seedParts } from '../data/cards.js';
+import { RARITIES, CAR_RARITY, PART_CATEGORIES, PART_SLOTS, PACKS, seedParts } from '../data/cards.js';
 
 let catalog = null;
 
@@ -43,23 +43,35 @@ export function getCatalog() {
     },
   }));
 
-  const partCards = seedParts.map((p) => ({
-    id: `part:${p.id}`,
-    type: 'part',
-    rarity: p.rarity,
-    name: p.name,
-    partId: p.id,
-    slot: p.slot,
-    slotLabel: PART_SLOTS[p.slot]?.label ?? p.slot,
-    effect: p.effect,
-    mods: p.mods,
-  }));
+  const partCards = seedParts.map((p) => {
+    const category = PART_CATEGORIES.find((c) => c.id === PART_SLOTS[p.slot]?.category);
+    return {
+      id: `part:${p.id}`,
+      type: 'part',
+      rarity: p.rarity,
+      name: p.name,
+      partId: p.id,
+      slot: p.slot,
+      slotLabel: PART_SLOTS[p.slot]?.label ?? p.slot,
+      category: category?.id,
+      categoryLabel: category?.label,
+      effect: p.effect,
+      mods: p.mods,
+    };
+  });
 
   const cards = [...carCards, ...partCards];
   const byId = new Map(cards.map((c) => [c.id, c]));
-  const byRarity = Object.fromEntries(RARITIES.map((r) => [r.id, cards.filter((c) => c.rarity === r.id)]));
+  // Pack pools: type -> rarity -> cards.
+  const pools = Object.fromEntries(['car', 'part'].map((type) => [
+    type,
+    Object.fromEntries(RARITIES.map((r) => [r.id, cards.filter((c) => c.type === type && c.rarity === r.id)])),
+  ]));
 
-  catalog = { rarities: RARITIES, packs: PACKS, slots: PART_SLOTS, cards, byId, byRarity };
+  catalog = {
+    rarities: RARITIES, packs: PACKS, categories: PART_CATEGORIES, slots: PART_SLOTS,
+    cards, byId, pools,
+  };
   return catalog;
 }
 
