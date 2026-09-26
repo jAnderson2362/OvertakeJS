@@ -136,6 +136,20 @@ export function buildStats({ base, partCards }) {
   return { stock: summary(base), tuned: summary(tuned) };
 }
 
+export const BUILD_PREFIX = 'build:';
+
+/**
+ * A saved build as a race-ready car record: the tuned car, keyed and named
+ * as the build. Returns null if its cards no longer resolve.
+ */
+export function raceCarFromBuild(build) {
+  const resolved = resolveBuild({ carCardId: build.carCardId, parts: normalizeParts(build.parts) });
+  if (resolved.error) return null;
+  const { base, partCards } = resolved;
+  const car = applyParts(base, SLOTS.map((s) => partCards[s]).filter(Boolean));
+  return { ...car, id: `${BUILD_PREFIX}${build.id}`, name: build.name };
+}
+
 /** How many times each card id appears across a list of builds. */
 function cardUsage(builds) {
   const used = new Map();

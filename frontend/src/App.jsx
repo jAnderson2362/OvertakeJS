@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { fetchCars, fetchTracks, simulateRace } from './api.js';
+import { useEffect, useMemo, useState } from 'react';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { fetchCars, fetchTracks, fetchGarage, simulateRace } from './api.js';
 import CarsPage, { MIN_CARS } from './pages/CarsPage.jsx';
 import TrackPage from './pages/TrackPage.jsx';
 import CardsPage from './pages/CardsPage.jsx';
@@ -10,8 +10,34 @@ import LoginPage from './pages/LoginPage.jsx';
 import RaceView from './components/RaceView.jsx';
 import { useAuth } from './auth.jsx';
 
+// Race entry ids for custom builds; the server resolves them to tuned cars.
+const BUILD_PREFIX = 'build:';
+
+/** A saved garage build shaped like a stock car for the picker: tuned stats, base car details. */
+function pickerCarFromBuild(build, stockById) {
+  const base = stockById[build.carCardId.slice('car:'.length)];
+  const t = build.stats.tuned;
+  return {
+    id: `${BUILD_PREFIX}${build.id}`,
+    name: build.name,
+    custom: true,
+    baseName: base?.name ?? 'Custom build',
+    class: 'Custom build',
+    year: base?.year,
+    country: base?.country,
+    ev: base?.ev ?? false,
+    hp: t.hp,
+    mass: t.mass,
+    topSpeed: t.topSpeed,
+    tireGrip: t.tireGrip,
+    drive: t.drive,
+    powerToWeight: t.hp / t.mass,
+  };
+}
+
 function App() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { user } = useAuth();
   const [cars, setCars] = useState(null);
   const [tracks, setTracks] = useState(null);
@@ -30,6 +56,32 @@ function App() {
       .then(([c, t]) => { setCars(c); setTracks(t); setTrackId(t[0]?.id ?? null); })
       .catch((err) => setLoadError(err.message));
   }, []);
+
+  // The signed-in player's garage builds join the car picker. Refetched on
+  // the picker so a build saved in the garage shows up straight away; a
+  // failure just leaves the stock cars.
+  const [builds, setBuilds] = useState([]);
+  useEffect(() => {
+    if (!user) { setBuilds([]); return; }
+    if (pathname !== '/') return;
+    fetchGarage().then((g) => setBuilds(g.builds.filter((b) => b.stats))).catch(() => {});
+  }, [user, pathname]);
+
+  // Builds first, then stock cars.
+  const pickerCars = useMemo(() => {
+    if (!cars) return null;
+    const stockById = Object.fromEntries(cars.map((c) => [c.id, c]));
+    return [...builds.map((b) => pickerCarFromBuild(b, stockById)), ...cars];
+  }, [cars, builds]);
+
+  // Drop grid picks for builds that were deleted or belong to a signed-out player.
+  useEffect(() => {
+    const live = new Set(builds.map((b) => `${BUILD_PREFIX}${b.id}`));
+    setSelectedCars((sel) => {
+      const kept = sel.filter((id) => !id.startsWith(BUILD_PREFIX) || live.has(id));
+      return kept.length === sel.length ? sel : kept;
+    });
+  }, [builds]);
 
   const runSimulation = async () => {
     setSimulating(true);
@@ -76,7 +128,7 @@ function App() {
           path="/"
           element={
             <CarsPage
-              cars={cars}
+              cars={pickerCars}
               selected={selectedCars}
               onChange={setSelectedCars}
               onNext={() => navigate('/track')}

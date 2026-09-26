@@ -104,11 +104,24 @@ function CarCard({ car, slot, disabled, onToggle, maxima }) {
 
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="font-display text-xl leading-none truncate">{car.name}</div>
-          <div className="mt-1 flex items-center gap-2 text-[11px] uppercase tracking-wider text-ink/50">
-            <span>{car.class}</span>
-            <span className="text-muted">·</span>
-            <span>{car.year}</span>
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="font-display text-xl leading-none truncate">{car.name}</span>
+            {car.custom && (
+              <span className="shrink-0 translate-y-0.5 rounded px-1 py-px border border-highlight-soft/50 text-highlight-soft text-[11px] leading-tight">
+                Custom
+              </span>
+            )}
+          </div>
+          <div className="mt-1 flex items-center gap-2 text-[11px] uppercase tracking-wider text-ink/50 min-w-0">
+            {car.custom ? (
+              <span className="truncate normal-case tracking-normal">{car.baseName}</span>
+            ) : (
+              <>
+                <span>{car.class}</span>
+                <span className="text-muted">·</span>
+                <span>{car.year}</span>
+              </>
+            )}
             {car.ev && (
               <span className="rounded px-1 py-px bg-highlight/20 text-highlight normal-case tracking-normal">EV</span>
             )}
@@ -387,10 +400,11 @@ export default function CarsPage({ cars, selected, onChange, onNext }) {
       (c) => matches(c, query) && (carClass === 'all' || c.class === carClass) && (drive === 'all' || c.drive === drive),
     );
     const dir = sort.dir === 'asc' ? 1 : -1;
+    // The player's own custom builds stay at the top under any sort.
     return list.sort((a, b) => {
       const av = a[sort.key], bv = b[sort.key];
       const cmp = typeof av === 'number' ? av - bv : String(av).localeCompare(String(bv));
-      return cmp * dir || a.name.localeCompare(b.name);
+      return (b.custom ? 1 : 0) - (a.custom ? 1 : 0) || cmp * dir || a.name.localeCompare(b.name);
     });
   }, [all, query, carClass, drive, sort]);
 

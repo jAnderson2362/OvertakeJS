@@ -3,6 +3,8 @@ import rateLimit from 'express-rate-limit';
 import { getCarById, getTrackById, isDbReady } from '../data/store.js';
 import { simulateRace } from '../sim/race.js';
 import Race from '../models/Race.js';
+import { listBuilds } from '../data/builds.js';
+import { BUILD_PREFIX, raceCarFromBuild } from '../cards/builds.js';
 
 const router = Router();
 
@@ -49,10 +51,33 @@ router.post('/simulate', simulateLimiter, async (req, res) => {
   if (!Array.isArray(carIds) || carIds.length < 2 || carIds.length > 8) {
     return res.status(400).json({ error: 'Pick between 2 and 8 cars.' });
   }
+  if (carIds.some((id) => typeof id !== 'string')) {
+    return res.status(400).json({ error: 'Invalid car in the entry list.' });
+  }
   if (new Set(carIds).size !== carIds.length) {
     return res.status(400).json({ error: 'Duplicate cars in the entry list.' });
   }
-  const missing = carIds.filter((id) => !getCarById(id));
+
+  // Custom builds ('build:<id>') race as their tuned car. Only the signed-in
+  // player's own builds are allowed.
+  const buildIds = carIds.filter((id) => id.startsWith(BUILD_PREFIX));
+  const buildCars = {};
+  if (buildIds.length) {
+    if (!req.auth) return res.status(401).json({ error: 'Sign in to race your custom builds.' });
+    try {
+      const mine = new Map((await listBuilds(req.auth.userId)).map((b) => [`${BUILD_PREFIX}${b.id}`, b]));
+      for (const id of buildIds) {
+        const car = mine.has(id) ? raceCarFromBuild(mine.get(id)) : null;
+        if (!car) return res.status(400).json({ error: 'One of those builds no longer exists. Pick your cars again.' });
+        buildCars[id] = car;
+      }
+    } catch (err) {
+      console.error('Failed to load builds for race:', err);
+      return res.status(500).json({ error: 'Could not load your builds.' });
+    }
+  }
+
+  const missing = carIds.filter((id) => !buildCars[id] && !getCarById(id));
   if (missing.length) {
     return res.status(400).json({ error: `Unknown car(s): ${missing.join(', ')}` });
   }
@@ -69,7 +94,7 @@ router.post('/simulate', simulateLimiter, async (req, res) => {
     : (Date.now() ^ (Math.random() * 0xffffffff)) >>> 0;
 
   try {
-    const result = simulateRace({ track, carIds, laps, seed });
+    const result = simulateRace({ track, carIds, laps, seed, cars: buildCars });
     res.json(result);
 
     // Persist after responding; a storage failure never breaks the sim.

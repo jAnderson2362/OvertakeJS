@@ -63,7 +63,11 @@ function interpProfile(v, ds, sMod) {
   return v[i] * (1 - w) + v[(i + 1) % n] * w;
 }
 
-export function simulateRace({ track, carIds, laps, seed }) {
+/**
+ * `cars` optionally maps entry ids to ready-made car records (custom builds
+ * from cards/builds.js); any other id is a stock car from the store.
+ */
+export function simulateRace({ track, carIds, laps, seed, cars = {} }) {
   const rand = mulberry32(seed);
   const { centerline, overtakeZones } = track;
   const L = centerline.length;
@@ -81,7 +85,7 @@ export function simulateRace({ track, carIds, laps, seed }) {
 
   // --- 1. Qualifying -------------------------------------------------------
   const entries = carIds.map((carId, idx) => {
-    const car = getCarById(carId);
+    const car = cars[carId] ?? getCarById(carId);
     const quali = solveSpeedProfile(centerline, car, {
       mass: car.mass + car.fuelPerKm * trackKm * 2,
       grip: car.tireGrip,
