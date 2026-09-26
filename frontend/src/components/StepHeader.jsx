@@ -142,7 +142,7 @@ export default function StepHeader({ step }) {
           Overtake<span className="text-highlight">JS</span>
         </h1>
         <p className="text-ink/60 mt-1">
-          Pick your grid, pick a circuit, the physics engine settles the rest.
+          Pick your cars, pick a circuit, the physics engine settles the rest.
         </p>
       </motion.div>
 

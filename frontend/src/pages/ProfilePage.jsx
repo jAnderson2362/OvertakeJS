@@ -139,7 +139,6 @@ function ActionCard({ to, kicker, title, desc, delay }) {
         <div className="text-[10px] uppercase tracking-widest text-ink/40 group-hover:text-highlight-soft transition-colors">{kicker}</div>
         <div className="mt-1 flex items-center justify-between gap-3">
           <span className="font-display text-2xl leading-none">{title}</span>
-          <span className="text-ink/40 group-hover:text-highlight group-hover:translate-x-0.5 transition-all text-xl leading-none">→</span>
         </div>
         <p className="mt-1.5 text-sm text-ink/55">{desc}</p>
       </Link>

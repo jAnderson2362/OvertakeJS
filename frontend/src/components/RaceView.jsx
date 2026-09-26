@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { buildPathLookup, distanceAt, speedAt, standingsAt } from '../utils/playback.js';
 import { formatLapTime, formatClock, formatGap } from '../utils/format.js';
+import { buildScenery } from '../utils/scenery.js';
 import CarThumb from './CarThumb.jsx';
 
 /** Read a CSS token from the document (canvas drawing can't use CSS variables directly). */
@@ -60,12 +61,32 @@ export default function RaceView({ race, onExit, onRerun }) {
       kerbAlt: cssVar('--track-kerb-alt'),
       checkA: cssVar('--track-check-a'),
       checkB: cssVar('--track-check-b'),
-      arena: cssVar('--track-arena'),
       arenaLo: cssVar('--track-arena-lo'),
-      grid: cssVar('--track-grid'),
       label: cssVar('--car-label'),
+      rough: cssVar('--scenery-rough'),
+      gravel: cssVar('--scenery-gravel'),
+      gravelEdge: cssVar('--scenery-gravel-edge'),
+      water: cssVar('--scenery-water'),
+      waterHi: cssVar('--scenery-water-hi'),
+      shore: cssVar('--scenery-shore'),
+      trees: [cssVar('--scenery-tree-a'), cssVar('--scenery-tree-b'), cssVar('--scenery-tree-c')],
+      treeHi: cssVar('--scenery-tree-hi'),
+      shadow: cssVar('--scenery-shadow'),
     };
     const { track, timeline, entries } = race;
+
+    // Countryside around the circuit, built once per race in world metres.
+    const scenery = buildScenery(track, {
+      rough: palette.rough,
+      mown: cssVar('--scenery-mown'),
+      stripe: cssVar('--scenery-stripe'),
+      patchDark: cssVar('--scenery-patch-dark'),
+      patchLight: cssVar('--scenery-patch-light'),
+    });
+    // The full-track camera never moves, so its scenery and track are drawn
+    // once per canvas size and copied each frame.
+    const staticLayer = document.createElement('canvas');
+    let staticKey = '';
     const { samples, dt, duration } = timeline;
     let raf;
     let lastHud = -1;
@@ -116,23 +137,74 @@ export default function RaceView({ race, onExit, onRerun }) {
       return { project, scale: fit, focus: false };
     }
 
-    // Atmospheric arena backdrop: radial floor gradient + faint telemetry grid.
-    function drawBackground() {
-      const W = canvas.width, H = canvas.height;
-      const dpr = window.devicePixelRatio || 1;
-      const g = ctx.createRadialGradient(W * 0.5, H * 0.4, 0, W * 0.5, H * 0.5, Math.max(W, H) * 0.75);
-      g.addColorStop(0, palette.arena);
-      g.addColorStop(1, palette.arenaLo);
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, W, H);
+    // Natural backdrop: grass, lake, gravel traps and woodland. Drawn in world
+    // metres through the camera, so it pans and rotates with the onboard view.
+    function drawBackground(tf) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = palette.rough;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      ctx.strokeStyle = palette.grid;
-      ctx.lineWidth = 1 * dpr;
-      const step = 46 * dpr;
-      ctx.beginPath();
-      for (let x = (W % step) / 2; x < W; x += step) { ctx.moveTo(x, 0); ctx.lineTo(x, H); }
-      for (let y = (H % step) / 2; y < H; y += step) { ctx.moveTo(0, y); ctx.lineTo(W, y); }
-      ctx.stroke();
+      // The camera is affine, so three projected points give its matrix.
+      const [ox, oy] = tf.project(0, 0);
+      const [ax, ay] = tf.project(1, 0);
+      const [bx, by] = tf.project(0, 1);
+      const ma = ax - ox, mb = ay - oy, mc = bx - ox, md = by - oy;
+      ctx.setTransform(ma, mb, mc, md, ox, oy);
+
+      const { ground, lake, gravel } = scenery;
+      ctx.drawImage(ground.canvas, ground.x, ground.y, ground.w, ground.h);
+
+      if (lake) {
+        ctx.beginPath();
+        lake.points.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+        ctx.closePath();
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = palette.shore;
+        ctx.lineWidth = 9;
+        ctx.stroke();
+        ctx.fillStyle = palette.water;
+        ctx.fill();
+        const shine = ctx.createRadialGradient(lake.x - lake.r * 0.3, lake.y + lake.r * 0.3, 0, lake.x, lake.y, lake.r);
+        shine.addColorStop(0, palette.waterHi);
+        shine.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = shine;
+        ctx.fill();
+      }
+
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      for (const [width, color] of [[39, palette.gravelEdge], [36, palette.gravel]]) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.beginPath();
+        for (const trap of gravel) trap.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+        ctx.stroke();
+      }
+
+      // Trees: one path per layer keeps thousands of canopies cheap. Shadow
+      // falls bottom-right, highlight sits top-left.
+      const canopies = (list, color, dx, dy, k) => {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        for (const t of list) {
+          const r = t.r * k, x = t.x + t.r * dx, y = t.y + t.r * dy;
+          ctx.moveTo(x + r, y);
+          ctx.arc(x, y, r, 0, Math.PI * 2);
+        }
+        ctx.fill();
+      };
+      // Skip trees off screen (most of them, in the zoomed onboard view).
+      const W = canvas.width, H = canvas.height;
+      const pad = 12 * Math.hypot(ma, mb);
+      const trees = scenery.trees.filter((t) => {
+        const sx = ma * t.x + mc * t.y + ox, sy = mb * t.x + md * t.y + oy;
+        return sx > -pad && sx < W + pad && sy > -pad && sy < H + pad;
+      });
+      canopies(trees, palette.shadow, 0.35, -0.35, 1);
+      palette.trees.forEach((color, tone) => canopies(trees.filter((t) => t.tone === tone), color, 0, 0, 1));
+      canopies(trees, palette.treeHi, -0.25, 0.25, 0.55);
+
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
 
     // Darken the edges so the action reads toward the centre (broadcast feel).
@@ -154,9 +226,12 @@ export default function RaceView({ race, onExit, onRerun }) {
       ctx.closePath();
     }
 
+    // Road width on screen: true to scale, but never thinner than 13 px.
+    const ribbonWidth = (tf) => Math.max(track.width * tf.scale, 13 * (window.devicePixelRatio || 1));
+
     function drawTrack(tf) {
       const dpr = window.devicePixelRatio || 1;
-      const ribbon = Math.max(track.width * tf.scale, 10 * dpr);
+      const ribbon = ribbonWidth(tf);
       ctx.lineJoin = 'round';
       ctx.lineCap = 'round';
 
@@ -238,7 +313,9 @@ export default function RaceView({ race, onExit, onRerun }) {
 
     function drawCars(tf, t, focusId) {
       const dpr = window.devicePixelRatio || 1;
-      const scaleK = tf.focus ? 1.7 : 1; // bigger glyphs in the onboard cam
+      // Size cars from the road so about 2.5 fit side by side at any zoom
+      // (the glyph is 8.5 px wide at scale 1).
+      const scaleK = Math.min(2.2, Math.max(0.6, ribbonWidth(tf) / 2.5 / (8.5 * dpr)));
       const rows = [...entries].map((e) => ({ e, s: distanceAt(samples[e.carId], dt, t) }));
       rows.sort((a, b) => a.s - b.s); // draw leader last (on top)
       // Focused car always draws on top of the pack.
@@ -378,8 +455,22 @@ export default function RaceView({ race, onExit, onRerun }) {
       }
 
       const tf = transform(focus);
-      drawBackground();
-      drawTrack(tf);
+      if (tf.focus) {
+        drawBackground(tf);
+        drawTrack(tf);
+      } else {
+        const key = `${canvas.width}x${canvas.height}`;
+        if (staticKey !== key) {
+          drawBackground(tf);
+          drawTrack(tf);
+          staticLayer.width = canvas.width;
+          staticLayer.height = canvas.height;
+          staticLayer.getContext('2d').drawImage(canvas, 0, 0);
+          staticKey = key;
+        } else {
+          ctx.drawImage(staticLayer, 0, 0);
+        }
+      }
       drawCars(tf, p.t, fid);
       drawVignette();
 

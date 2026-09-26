@@ -48,10 +48,25 @@
   --track-kerb-alt: #F0EDEE;
   --track-check-a: #F0EDEE;
   --track-check-b: #0e0e11;
-  --track-arena: #14141a;
   --track-arena-lo: #050506;
-  --track-grid: rgba(240, 237, 238, 0.035);
   --car-label: rgba(240, 237, 238, 0.88);
+
+  /* Race view countryside (muted so the red UI still leads) */
+  --scenery-rough: #2b4125;
+  --scenery-mown: #35512c;
+  --scenery-stripe: rgba(255, 255, 255, 0.045);
+  --scenery-patch-dark: rgba(10, 22, 8, 0.35);
+  --scenery-patch-light: rgba(120, 140, 60, 0.18);
+  --scenery-gravel: #8c7d5d;
+  --scenery-gravel-edge: #5e5440;
+  --scenery-water: #1d3a47;
+  --scenery-water-hi: rgba(160, 200, 215, 0.12);
+  --scenery-shore: #4d5638;
+  --scenery-tree-a: #1b3119;
+  --scenery-tree-b: #22391e;
+  --scenery-tree-c: #2a4424;
+  --scenery-tree-hi: rgba(170, 200, 120, 0.10);
+  --scenery-shadow: rgba(0, 0, 0, 0.32);
 }
 
 @theme inline {
