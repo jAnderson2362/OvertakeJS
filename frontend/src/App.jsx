@@ -166,7 +166,7 @@ function App() {
           path="/race"
           element={
             race ? (
-              <RaceView race={race} onExit={() => navigate('/track')} onRerun={runSimulation} />
+              <RaceView race={race} onExit={() => navigate('/track')} onRerun={runSimulation} rerunning={simulating} />
             ) : (
               <Navigate to="/" replace />
             )

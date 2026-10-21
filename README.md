@@ -8,18 +8,30 @@ Pick your cars, pick a track, and let the simulation crunch the numbers (horsepo
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | React, Vite, Tailwind CSS, HTML5 Canvas |
+| Frontend | React, Vite, Tailwind CSS, HTML5 Canvas, Motion |
 | Backend | Node.js, Express |
 | Database | MongoDB |
 
-## Roadmap
+## Running locally
 
-- [x] Project scaffolding
-- [ ] Database schema (cars, tracks, races)
-- [ ] Simulation engine
-- [ ] REST API endpoints
-- [ ] Race setup UI
-- [ ] Live Canvas race visualization
+Needs Node 20+ and MongoDB 7 on `127.0.0.1:27017` (without MongoDB the API falls back to in-memory data that resets on restart).
+
+```bash
+cp backend/.env.example backend/.env   # then set JWT_SECRET (see the comment in the file)
+npm install --prefix backend
+npm install --prefix frontend
+npm run dev --prefix backend           # API on http://localhost:5000
+npm run dev --prefix frontend          # app on http://localhost:5173
+```
+
+## Features
+
+- [x] Physics engine: quasi-steady-state lap solver and a time-domain race sim with slipstream, dirty air and overtaking
+- [x] Race setup UI and live Canvas race view with onboard camera and telemetry
+- [x] MongoDB persistence for cars, tracks and races
+- [x] Accounts: email and password or Google sign-in, revocable cookie sessions
+- [x] Trading card packs and a collection
+- [x] Garage: custom builds from car and part cards, raceable in the sim
 - [ ] Race history and leaderboards
 
 ## License

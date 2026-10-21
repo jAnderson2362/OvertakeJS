@@ -5,11 +5,15 @@ import crypto from 'node:crypto';
 import rateLimit from 'express-rate-limit';
 import { createUser, findUserByEmail, findUserById, normalizeEmail, findOrCreateByGoogle, bumpSessionVersion } from '../data/users.js';
 import { issueSession, clearSession, requireAuth } from '../auth/session.js';
+import { hasBadNameChars, stripBadNameChars } from '../utils/names.js';
 
 const router = Router();
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const BCRYPT_ROUNDS = 10;
+// Compared against when the email is unknown, so a miss takes as long as a
+// wrong password and response times don't reveal which emails have accounts.
+const DUMMY_HASH = bcrypt.hashSync(crypto.randomBytes(16).toString('hex'), BCRYPT_ROUNDS);
 const PROD = process.env.NODE_ENV === 'production';
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -32,8 +36,9 @@ router.post('/register', authLimiter, async (req, res) => {
   const e = normalizeEmail(email);
   const n = String(name ?? '').trim();
 
-  if (!EMAIL.test(e)) return res.status(400).json({ error: 'Enter a valid email address.' });
+  if (e.length > 254 || !EMAIL.test(e)) return res.status(400).json({ error: 'Enter a valid email address.' });
   if (n.length < 2 || n.length > 24) return res.status(400).json({ error: 'Driver name must be 2 to 24 characters.' });
+  if (hasBadNameChars(n)) return res.status(400).json({ error: 'Driver name has characters that are not allowed.' });
   if (typeof password !== 'string' || password.length < 8) {
     return res.status(400).json({ error: 'Password must be at least 8 characters.' });
   }
@@ -58,9 +63,13 @@ router.post('/login', authLimiter, async (req, res) => {
   const { email, password } = req.body ?? {};
   try {
     const record = await findUserByEmail(email);
-    // Same response for unknown email, Google-only account and wrong password.
-    const ok = record?.passwordHash && typeof password === 'string'
-      && (await bcrypt.compare(password, record.passwordHash));
+    // Same response, and the same bcrypt work, for unknown email, Google-only
+    // account and wrong password.
+    const matches = await bcrypt.compare(
+      typeof password === 'string' ? password : '',
+      record?.passwordHash ?? DUMMY_HASH,
+    );
+    const ok = matches && Boolean(record?.passwordHash) && typeof password === 'string';
     if (!ok) return res.status(401).json({ error: 'Email or password is incorrect.' });
 
     const user = { id: record.id, email: record.email, name: record.name };
@@ -99,10 +108,12 @@ router.get('/me', async (req, res) => {
 
 const STATE_COOKIE = { httpOnly: true, sameSite: 'lax', secure: PROD, path: '/api/auth/google' };
 
+// The OAuth routes are full-page navigations, so failures go back to the
+// login page with a reason code instead of a bare error page.
+const backToLogin = (res, reason) => res.redirect(`${CLIENT_URL}/login?error=${reason}`);
+
 router.get('/google', (req, res) => {
-  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
-    return res.status(404).json({ error: 'Google sign-in is not configured.' });
-  }
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) return backToLogin(res, 'google_unavailable');
   const state = crypto.randomBytes(16).toString('hex');
   res.cookie('oauth_state', state, { ...STATE_COOKIE, maxAge: 600000 });
 
@@ -126,7 +137,7 @@ router.get('/google/callback', authLimiter, async (req, res) => {
     // Both must be present: a missing state would otherwise equal a missing
     // cookie and let another site sign the browser into its own account.
     if (typeof state !== 'string' || typeof code !== 'string' || !expected || state !== expected) {
-      return res.status(403).send('Invalid state');
+      return backToLogin(res, 'google_failed');
     }
 
     const { data } = await axios.post('https://oauth2.googleapis.com/token', {
@@ -144,14 +155,16 @@ router.get('/google/callback', authLimiter, async (req, res) => {
       Buffer.from(data.id_token.split('.')[1], 'base64url').toString()
     );
     const validIssuer = ['https://accounts.google.com', 'accounts.google.com'].includes(payload.iss);
-    if (!validIssuer || payload.aud !== GOOGLE_CLIENT_ID || payload.email_verified !== true || !payload.sub) {
-      return res.status(403).send('Google account could not be verified');
+    if (!validIssuer || payload.aud !== GOOGLE_CLIENT_ID || payload.email_verified !== true || !payload.sub
+      || typeof payload.email !== 'string') {
+      return backToLogin(res, 'google_unverified');
     }
 
+    const name = stripBadNameChars(String(payload.name ?? payload.email.split('@')[0])).trim().slice(0, 24);
     const user = await findOrCreateByGoogle({
       googleId: payload.sub,
       email: payload.email,
-      name: String(payload.name ?? payload.email.split('@')[0]).slice(0, 24),
+      name: name.length >= 2 ? name : 'Driver',
     });
 
     await issueSession(res, user);
@@ -160,7 +173,7 @@ router.get('/google/callback', authLimiter, async (req, res) => {
     // Log the message only: axios errors carry the request body, which
     // includes the client secret.
     console.error('Google OAuth failed:', err.message);
-    res.status(500).send('OAuth failed');
+    backToLogin(res, 'google_failed');
   }
 });
 

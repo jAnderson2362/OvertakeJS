@@ -7,6 +7,7 @@ import { motion } from 'motion/react';
 import { fetchCardCatalog, fetchMyCards } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import TradingCard, { RARITY_COLOR, RARITY_LABEL } from '../components/TradingCard.jsx';
+import { BackToSetup } from '../components/ui.jsx';
 
 const spring = { type: 'spring', stiffness: 420, damping: 32 };
 const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
@@ -14,38 +15,6 @@ const MotionLink = motion.create(Link);
 
 const dateFmt = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 const formatDate = (iso) => (iso ? dateFmt.format(new Date(iso)) : null);
-
-/* ---------- Back link ---------- */
-
-function BackToSetup({ onClick, className = '' }) {
-  return (
-    <motion.button
-      type="button"
-      onClick={onClick}
-      whileHover="hover"
-      whileTap={{ scale: 0.97 }}
-      className={`group inline-flex items-center gap-2.5 rounded-full border border-line/40 bg-bg-deep/70 pl-1.5 pr-4 py-1.5 text-sm text-ink/70 hover:text-ink hover:border-highlight/60 transition-colors ${className}`}
-    >
-      <span className="relative w-7 h-7 rounded-full bg-surface-2 border border-line/50 group-hover:bg-highlight group-hover:border-highlight transition-colors flex items-center justify-center overflow-hidden">
-        <motion.svg
-          variants={{ hover: { rotate: -10, scale: 1.1 } }}
-          transition={spring}
-          className="w-3.5 h-3.5 text-ink group-hover:text-highlight-fg transition-colors"
-          viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-          aria-hidden
-        >
-          <path d="M5 21V4" />
-          <path d="M5 4h13l-2 4 2 4H5" />
-          <path d="M9 4v8M13 4v8M5 8h13" strokeWidth="1.2" opacity="0.6" />
-        </motion.svg>
-      </span>
-      <span className="flex flex-col leading-none text-left">
-        <span className="text-[10px] uppercase tracking-widest text-ink/40 group-hover:text-ink/60 transition-colors">Back to</span>
-        <span className="font-display text-base mt-0.5">Race setup</span>
-      </span>
-    </motion.button>
-  );
-}
 
 /* ---------- Pieces ---------- */
 
@@ -279,7 +248,7 @@ function ProfilePageInner({ user }) {
             <h2 className="font-display text-3xl leading-none mt-1 truncate">{user.name}</h2>
             <p className="text-sm text-ink/55 mt-1.5 truncate">{user.email}</p>
             {stats.since && (
-              <p className="text-xs text-ink/40 mt-1">Member since {stats.since}</p>
+              <p className="text-xs text-ink/40 mt-1">Collecting since {stats.since}</p>
             )}
           </div>
           <div className="shrink-0 flex sm:flex-col items-end gap-3">
@@ -353,7 +322,6 @@ function ProfilePageInner({ user }) {
               <rect x="5" y="6" width="11" height="15" rx="2" transform="rotate(-8 10.5 13.5)" fill="currentColor" fillOpacity="0.15" />
             </svg>
             View collection
-            <span className="text-ink/40 group-hover:text-highlight group-hover:translate-x-0.5 transition-all"></span>
           </MotionLink>
         </div>
         {stats.recent.length === 0 ? (

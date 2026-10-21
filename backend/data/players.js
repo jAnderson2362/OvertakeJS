@@ -43,7 +43,7 @@ export async function loadPlayer(playerId) {
   const doc = await Player.findOneAndUpdate(
     { playerId },
     { $setOnInsert: defaults },
-    { upsert: true, new: true, lean: true },
+    { upsert: true, returnDocument: 'after', lean: true },
   );
   return {
     playerId: doc.playerId,
@@ -55,11 +55,13 @@ export async function loadPlayer(playerId) {
 }
 
 /**
- * Persist a mutated player. `expect` is the credits + lastDailyClaim the
- * caller loaded; if the stored values differ, nothing is written.
+ * Persist a mutated player. `expect` is the credits + lastDailyClaim +
+ * packsOpened the caller loaded; if the stored values differ, nothing is
+ * written. packsOpened rises on every open, so it catches an overlapping
+ * purchase even when that one's credit change netted out to zero.
  */
 export async function savePlayer(player, expect) {
-  const guard = { credits: expect.credits, lastDailyClaim: expect.lastDailyClaim };
+  const guard = { credits: expect.credits, lastDailyClaim: expect.lastDailyClaim, packsOpened: expect.packsOpened };
   const next = {
     credits: player.credits,
     lastDailyClaim: player.lastDailyClaim,
@@ -69,13 +71,17 @@ export async function savePlayer(player, expect) {
 
   if (!isDbReady()) {
     const cur = memory.get(player.playerId);
-    if (!cur || cur.credits !== guard.credits || cur.lastDailyClaim !== guard.lastDailyClaim) {
+    if (!cur || cur.credits !== guard.credits || cur.lastDailyClaim !== guard.lastDailyClaim
+      || cur.packsOpened !== guard.packsOpened) {
       throw new ConflictError();
     }
     memory.set(player.playerId, clone({ ...cur, ...next }));
     return;
   }
 
-  const res = await Player.updateOne({ playerId: player.playerId, ...guard }, { $set: next });
+  // loadPlayer reads a missing packsOpened as 0; match that here too.
+  const filter = { playerId: player.playerId, ...guard };
+  if (guard.packsOpened === 0) filter.packsOpened = { $in: [0, null] };
+  const res = await Player.updateOne(filter, { $set: next });
   if (res.matchedCount === 0) throw new ConflictError();
 }

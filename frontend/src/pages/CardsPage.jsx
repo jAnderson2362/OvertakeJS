@@ -7,7 +7,7 @@ import { fetchCardCatalog, fetchMyCards, claimDailyPack, buyPacks } from '../api
 import { useAuth } from '../auth.jsx';
 import TradingCard, { RARITY_COLOR, RARITY_LABEL } from '../components/TradingCard.jsx';
 import PackOpening from '../components/PackOpening.jsx';
-import { ChipGroup, PrimaryButton, EmptyState } from '../components/ui.jsx';
+import { ChipGroup, PrimaryButton, EmptyState, BackToSetup } from '../components/ui.jsx';
 
 const spring = { type: 'spring', stiffness: 420, damping: 32 };
 const MAX_QTY = 10;
@@ -30,38 +30,6 @@ function formatCountdown(ms) {
   const h = Math.floor(ms / 3_600_000);
   const m = Math.floor((ms % 3_600_000) / 60_000);
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
-}
-
-/* ---------- Back link ---------- */
-
-function BackToSetup({ onClick, className = '' }) {
-  return (
-    <motion.button
-      type="button"
-      onClick={onClick}
-      whileHover="hover"
-      whileTap={{ scale: 0.97 }}
-      className={`group inline-flex items-center gap-2.5 rounded-full border border-line/40 bg-bg-deep/70 pl-1.5 pr-4 py-1.5 text-sm text-ink/70 hover:text-ink hover:border-highlight/60 transition-colors ${className}`}
-    >
-      <span className="relative w-7 h-7 rounded-full bg-surface-2 border border-line/50 group-hover:bg-highlight group-hover:border-highlight transition-colors flex items-center justify-center overflow-hidden">
-        <motion.svg
-          variants={{ hover: { rotate: -10, scale: 1.1 } }}
-          transition={spring}
-          className="w-3.5 h-3.5 text-ink group-hover:text-highlight-fg transition-colors"
-          viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-          aria-hidden
-        >
-          <path d="M5 21V4" />
-          <path d="M5 4h13l-2 4 2 4H5" />
-          <path d="M9 4v8M13 4v8M5 8h13" strokeWidth="1.2" opacity="0.6" />
-        </motion.svg>
-      </span>
-      <span className="flex flex-col leading-none text-left">
-        <span className="text-[10px] uppercase tracking-widest text-ink/40 group-hover:text-ink/60 transition-colors">Back to</span>
-        <span className="font-display text-base mt-0.5">Race setup</span>
-      </span>
-    </motion.button>
-  );
 }
 
 /* ---------- Credits ---------- */
@@ -134,9 +102,11 @@ function PackCard({ pack, credits, daily, busy, onOpen, index }) {
   const [qty, setQty] = useState(1);
   const now = useNow();
   const cost = pack.price * qty;
-  const available = pack.daily ? daily.available : credits >= cost;
+  // The day can roll over while the page is open; the server has the final say.
+  const dailyReady = daily.available || now >= Date.parse(daily.nextAt);
+  const available = pack.daily ? dailyReady : credits >= cost;
   const isBusy = busy === pack.id;
-  const highlight = pack.daily && daily.available;
+  const highlight = pack.daily && dailyReady;
 
   return (
     <motion.div
@@ -176,7 +146,7 @@ function PackCard({ pack, credits, daily, busy, onOpen, index }) {
 
       <div className="relative mt-auto pt-2 flex items-center justify-between gap-3">
         {pack.daily ? (
-          daily.available ? (
+          dailyReady ? (
             <PrimaryButton onClick={() => onOpen(pack, 1)} disabled={isBusy} className="w-full px-4! text-xl!">
               {isBusy ? 'Opening...' : 'Open free pack'}
             </PrimaryButton>

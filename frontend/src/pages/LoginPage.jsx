@@ -10,6 +10,16 @@ const MODES = [
   { value: 'register', label: 'Create account' },
 ];
 
+// Reasons the server sends back after a failed Google sign-in.
+const OAUTH_ERRORS = {
+  google_unavailable: 'Google sign-in is not set up on this server. Use email and password instead.',
+  google_unverified: 'That Google account has no verified email address.',
+  google_failed: 'Google sign-in did not complete. Please try again.',
+};
+
+// Only paths inside this app: '//host' and '/\host' would leave the site.
+const safeNext = (next) => (next && /^\/(?![/\\])/.test(next) ? next : '/');
+
 function Field({ label, hint, ...props }) {
   return (
     <label className="block">
@@ -28,14 +38,14 @@ function Field({ label, hint, ...props }) {
 export default function LoginPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const next = params.get('next') || '/';
+  const next = safeNext(params.get('next'));
   const { login, register } = useAuth();
 
   const [mode, setMode] = useState(params.get('mode') === 'register' ? 'register' : 'login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [error, setError] = useState(null);
+  const [error, setError] = useState(() => OAUTH_ERRORS[params.get('error')] ?? null);
   const [busy, setBusy] = useState(false);
 
   const registering = mode === 'register';

@@ -42,6 +42,19 @@ app.use('/api/races', raceRoutes);
 app.use('/api/cards', cardRoutes);
 app.use('/api/garage', garageRoutes);
 
+// Unknown API routes and uncaught errors (bad JSON bodies, oversized
+// requests, a failed session lookup) answer in JSON like every other route.
+// Express's defaults are HTML pages with a stack trace outside production.
+app.use('/api', (req, res) => res.status(404).json({ error: 'Not found.' }));
+app.use((err, req, res, next) => {
+  const status = Number(err.status ?? err.statusCode) || 500;
+  if (status >= 500) console.error('Request failed:', err);
+  if (res.headersSent) return next(err);
+  res.status(status).json({
+    error: status === 413 ? 'That request is too large.' : status < 500 ? 'That request is not valid.' : 'Something went wrong.',
+  });
+});
+
 const connected = await connectDB();
 // The in-memory fallback loses every account on restart; never run on it live.
 if (PROD && !connected) {

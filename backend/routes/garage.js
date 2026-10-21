@@ -4,6 +4,7 @@ import { requireAuth } from '../auth/session.js';
 import { loadPlayer } from '../data/players.js';
 import { getTrackById } from '../data/store.js';
 import { listBuilds, createBuild, updateBuild, deleteBuild } from '../data/builds.js';
+import { hasBadNameChars } from '../utils/names.js';
 import {
   SLOTS, MAX_BUILDS, REFERENCE_TRACK_ID,
   resolveBuild, buildStats, checkCardCopies, normalizeParts,
@@ -45,6 +46,7 @@ function readBuild(body) {
   const { name, carCardId, parts } = body ?? {};
   const n = String(name ?? '').trim();
   if (n.length < 2 || n.length > 24) return { error: 'Build name must be 2 to 24 characters.' };
+  if (hasBadNameChars(n)) return { error: 'Build name has characters that are not allowed.' };
   if (typeof carCardId !== 'string') return { error: 'Pick one of your car cards as the base.' };
 
   const cleanParts = {};
@@ -55,6 +57,18 @@ function readBuild(body) {
     cleanParts[slot] = id;
   }
   return { build: { name: n, carCardId, parts: cleanParts } };
+}
+
+// Saves read the garage, check the build cap and card copies, then write. Run
+// them one at a time per player, or two quick saves could both pass the
+// checks. (In-process only: fine while the API runs as one instance.)
+const saveQueues = new Map();
+function oneAtATime(userId, fn) {
+  const run = (saveQueues.get(userId) ?? Promise.resolve()).then(fn);
+  const tail = run.catch(() => {});
+  saveQueues.set(userId, tail);
+  tail.then(() => { if (saveQueues.get(userId) === tail) saveQueues.delete(userId); });
+  return run;
 }
 
 /* ---------- Routes ---------- */
@@ -89,17 +103,19 @@ router.post('/', async (req, res) => {
   const resolved = resolveBuild(input.build);
   if (resolved.error) return res.status(400).json({ error: resolved.error });
 
+  const userId = req.auth.userId;
   try {
-    const userId = req.auth.userId;
-    const [player, builds] = await Promise.all([loadPlayer(userId), listBuilds(userId)]);
-    if (builds.length >= MAX_BUILDS) {
-      return res.status(400).json({ error: `Your garage is full (${MAX_BUILDS} builds). Delete one to make room.` });
-    }
-    const copyError = checkCardCopies(player, builds, input.build);
-    if (copyError) return res.status(400).json({ error: copyError });
+    await oneAtATime(userId, async () => {
+      const [player, builds] = await Promise.all([loadPlayer(userId), listBuilds(userId)]);
+      if (builds.length >= MAX_BUILDS) {
+        return res.status(400).json({ error: `Your garage is full (${MAX_BUILDS} builds). Delete one to make room.` });
+      }
+      const copyError = checkCardCopies(player, builds, input.build);
+      if (copyError) return res.status(400).json({ error: copyError });
 
-    const build = await createBuild(userId, input.build);
-    res.status(201).json(publicBuild(build));
+      const build = await createBuild(userId, input.build);
+      res.status(201).json(publicBuild(build));
+    });
   } catch (err) {
     console.error('Failed to create build:', err);
     res.status(500).json({ error: 'Failed to save the build.' });
@@ -112,19 +128,21 @@ router.put('/:id', async (req, res) => {
   const resolved = resolveBuild(input.build);
   if (resolved.error) return res.status(400).json({ error: resolved.error });
 
+  const userId = req.auth.userId;
   try {
-    const userId = req.auth.userId;
-    const [player, builds] = await Promise.all([loadPlayer(userId), listBuilds(userId)]);
-    if (!builds.some((b) => b.id === req.params.id)) {
-      return res.status(404).json({ error: 'Build not found.' });
-    }
-    const others = builds.filter((b) => b.id !== req.params.id);
-    const copyError = checkCardCopies(player, others, input.build);
-    if (copyError) return res.status(400).json({ error: copyError });
+    await oneAtATime(userId, async () => {
+      const [player, builds] = await Promise.all([loadPlayer(userId), listBuilds(userId)]);
+      if (!builds.some((b) => b.id === req.params.id)) {
+        return res.status(404).json({ error: 'Build not found.' });
+      }
+      const others = builds.filter((b) => b.id !== req.params.id);
+      const copyError = checkCardCopies(player, others, input.build);
+      if (copyError) return res.status(400).json({ error: copyError });
 
-    const build = await updateBuild(userId, req.params.id, input.build);
-    if (!build) return res.status(404).json({ error: 'Build not found.' });
-    res.json(publicBuild(build));
+      const build = await updateBuild(userId, req.params.id, input.build);
+      if (!build) return res.status(404).json({ error: 'Build not found.' });
+      res.json(publicBuild(build));
+    });
   } catch (err) {
     console.error('Failed to update build:', err);
     res.status(500).json({ error: 'Failed to save the build.' });

@@ -24,7 +24,7 @@ function gearbox(speedKmh, topSpeed) {
   return { gear, rpm: Math.round(rpmFrac * MAX_RPM), rpmFrac };
 }
 
-export default function RaceView({ race, onExit, onRerun }) {
+export default function RaceView({ race, onExit, onRerun, rerunning = false }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   // Playback clock lives in a ref so the rAF loop never fights React renders.
@@ -41,6 +41,14 @@ export default function RaceView({ race, onExit, onRerun }) {
     () => buildPathLookup(race.track.path, race.timeline.trackLength),
     [race],
   );
+
+  // A new race (Re-run simulation) starts playback from the lights again.
+  useEffect(() => {
+    playRef.current.t = 0;
+    playRef.current.lastFrame = null;
+    setPlaying(true);
+    setHud({ t: 0, rows: [], done: false });
+  }, [race]);
 
   useEffect(() => { playRef.current.speed = speed; }, [speed]);
   useEffect(() => { playRef.current.playing = playing; }, [playing]);
@@ -628,10 +636,12 @@ export default function RaceView({ race, onExit, onRerun }) {
                     className="flex-1 py-2.5 rounded-lg bg-line hover:bg-line/80 text-accent-fg font-medium text-sm transition-colors">
                     Replay
                   </button>
-                  <button onClick={onRerun}
-                    className="flex-1 py-2.5 rounded-lg bg-accent hover:bg-accent-hover font-medium text-sm transition-colors">
-                    Re-run simulation
-                  </button>
+                  {onRerun && (
+                    <button onClick={onRerun} disabled={rerunning}
+                      className="flex-1 py-2.5 rounded-lg bg-accent hover:bg-accent-hover font-medium text-sm transition-colors disabled:opacity-60 disabled:cursor-wait">
+                      {rerunning ? 'Simulating...' : 'Re-run simulation'}
+                    </button>
+                  )}
                   <button onClick={onExit}
                     className="flex-1 py-2.5 rounded-lg bg-line/40 hover:bg-line/60 font-medium text-sm transition-colors">
                     New race

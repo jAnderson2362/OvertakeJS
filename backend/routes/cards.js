@@ -80,7 +80,7 @@ router.get('/me', requirePlayer, async (req, res) => {
 async function openPacks(req, res, pack, quantity, mutate) {
   try {
     const player = await loadPlayer(req.playerId);
-    const expect = { credits: player.credits, lastDailyClaim: player.lastDailyClaim };
+    const expect = { credits: player.credits, lastDailyClaim: player.lastDailyClaim, packsOpened: player.packsOpened };
 
     const rejection = mutate(player);
     if (rejection) return res.status(rejection.status).json({ error: rejection.error });

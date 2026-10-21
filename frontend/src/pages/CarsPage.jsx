@@ -168,7 +168,7 @@ function CarCard({ car, slot, disabled, onToggle, onStats, maxima }) {
                 exit={{ scale: 0, rotate: 90 }}
                 transition={spring}
                 className="shrink-0 w-8 h-8 rounded-full bg-highlight text-highlight-fg font-display text-lg leading-none flex items-center justify-center shadow-md shadow-highlight/30"
-                title={`Grid slot ${slot + 1}`}
+                title={`Pick ${slot + 1}`}
               >
                 {slot + 1}
               </motion.span>
@@ -479,7 +479,7 @@ export default function CarsPage({ cars, selected, onChange, onNext }) {
         <div>
           <h2 className="font-display text-3xl leading-none">Choose your cars</h2>
           <p className="text-sm text-ink/50 mt-1">
-            Pick {MIN_CARS} to {MAX_CARS} cars. The order you pick sets the starting grid.
+            Pick {MIN_CARS} to {MAX_CARS} cars. Qualifying sets the starting grid.
           </p>
         </div>
         <div className="text-sm text-ink/50 tabular-nums">

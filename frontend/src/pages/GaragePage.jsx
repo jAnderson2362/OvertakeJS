@@ -325,7 +325,7 @@ function GaragePageInner() {
     let cancelled = false;
     const t = setTimeout(() => {
       previewBuild(draftCar, draftParts)
-        .then((s) => { if (!cancelled) setStats(s); })
+        .then((s) => { if (!cancelled) { setStats(s); setError(null); } })
         .catch((err) => { if (!cancelled) setError(err.message); });
     }, 120);
     return () => { cancelled = true; clearTimeout(t); };
