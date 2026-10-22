@@ -46,8 +46,10 @@ function gaussian(rand) {
 }
 
 function abbreviate(name) {
-  const words = name.replace(/\(.*\)/, '').trim().split(/\s+/);
-  return (words.length >= 2 ? words[0][0] + words[1].slice(0, 2) : words[0].slice(0, 3)).toUpperCase();
+  // By code point, so a name starting with an emoji isn't cut mid-character.
+  const words = name.replace(/\(.*\)/, '').trim().split(/\s+/).map((w) => Array.from(w));
+  const letters = words.length >= 2 ? [words[0][0], ...words[1].slice(0, 2)] : words[0].slice(0, 3);
+  return letters.join('').toUpperCase();
 }
 
 /** Tire degradation per lap: harder on grip the more power-dense the car. */
@@ -66,8 +68,10 @@ function interpProfile(v, ds, sMod) {
 /**
  * `cars` optionally maps entry ids to ready-made car records (custom builds
  * from cards/builds.js); any other id is a stock car from the store.
+ * `drivers` optionally maps entry ids to player names (multiplayer); those
+ * entries carry a `driver` and are abbreviated by driver, not car.
  */
-export function simulateRace({ track, carIds, laps, seed, cars = {} }) {
+export function simulateRace({ track, carIds, laps, seed, cars = {}, drivers = {} }) {
   const rand = mulberry32(seed);
   const { centerline, overtakeZones } = track;
   const L = centerline.length;
@@ -93,8 +97,9 @@ export function simulateRace({ track, carIds, laps, seed, cars = {} }) {
     return {
       car,
       carId,
+      driver: drivers[carId] ?? null,
       color: COLORS[idx % COLORS.length],
-      abbr: abbreviate(car.name),
+      abbr: abbreviate(drivers[carId] ?? car.name),
       qualiTime: quali.lapTime,
       aggression: 0.3 + rand() * 0.6,
     };
@@ -232,7 +237,7 @@ export function simulateRace({ track, carIds, laps, seed, cars = {} }) {
           fastestLap = { time: lapTime, carId: e.carId };
           events.push({
             t: tCross, type: 'fastestLap',
-            text: `Fastest lap: ${e.car.name} (${lapTime.toFixed(3)}s)`,
+            text: `Fastest lap: ${e.driver ?? e.car.name} (${lapTime.toFixed(3)}s)`,
           });
         }
         if (newLaps >= laps) {
@@ -260,7 +265,7 @@ export function simulateRace({ track, carIds, laps, seed, cars = {} }) {
           if (mover && displaced && mover !== displaced) {
             events.push({
               t, type: 'overtake',
-              text: `${mover.car.name} passes ${displaced.car.name} for P${pos + 1}`,
+              text: `${mover.driver ?? mover.car.name} passes ${displaced.driver ?? displaced.car.name} for P${pos + 1}`,
             });
           }
           break; // one event per frame is enough for the ticker
@@ -283,6 +288,7 @@ export function simulateRace({ track, carIds, laps, seed, cars = {} }) {
     position: i + 1,
     carId: st.e.carId,
     name: st.e.car.name,
+    driver: st.e.driver,
     color: st.e.color,
     image: st.e.car.image ?? null,
     grid: st.e.grid,
@@ -307,6 +313,7 @@ export function simulateRace({ track, carIds, laps, seed, cars = {} }) {
     entries: entries.map((e) => ({
       carId: e.carId,
       name: e.car.name,
+      driver: e.driver,
       color: e.color,
       image: e.car.image ?? null,
       abbr: e.abbr,

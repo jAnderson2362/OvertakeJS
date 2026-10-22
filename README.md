@@ -32,7 +32,18 @@ npm run dev --prefix frontend          # app on http://localhost:5173
 - [x] Accounts: email and password or Google sign-in, revocable cookie sessions
 - [x] Trading card packs and a collection
 - [x] Garage: custom builds from car and part cards, raceable in the sim
+- [x] Online multiplayer: rooms of up to 8 drivers race their builds, watched live and in sync
 - [ ] Race history and leaderboards
+
+## Multiplayer
+
+Players open or join a room at `/multiplayer` (public rooms are listed; private ones join by code or invite link), each pick one of their garage builds or a stock car, and ready up. The host sets the circuit and laps and starts the race.
+
+The server is authoritative: clients only send ids, every car is rebuilt from its owner's garage at the start, the race is simulated on the server, and all players receive the same result with a shared start time so they watch it live together at 4x speed.
+
+- Transport: WebSockets at `/api/multiplayer` on the API port (`backend/multiplayer/socket.js`), authenticated with the session cookie and limited to the `CLIENT_URL` origin.
+- Room logic: `backend/multiplayer/rooms.js`, tested by `npm test` in `backend/`.
+- Rooms live in memory, so the API must run as a single process.
 
 ## License
 

@@ -13,10 +13,12 @@ import trackRoutes from './routes/tracks.js';
 import raceRoutes from './routes/races.js';
 import cardRoutes from './routes/cards.js';
 import garageRoutes from './routes/garage.js';
+import { attachMultiplayer } from './multiplayer/socket.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 const PROD = process.env.NODE_ENV === 'production';
+const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
 // Number of proxies in front of the app (1 on most hosts). Rate limits key on
 // the client IP, so this must match the real setup or the IP can be spoofed.
@@ -25,7 +27,7 @@ app.set('trust proxy', Number(process.env.TRUST_PROXY) || 0);
 // Middleware
 app.use(helmet());
 // Only the app's own frontend may make credentialed cross-origin calls.
-app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true }));
+app.use(cors({ origin: CLIENT_URL, credentials: true }));
 app.use(express.json({ limit: '10kb' }));
 app.use(cookieParser());
 app.use(authenticate);
@@ -63,9 +65,11 @@ if (PROD && !connected) {
 }
 await initStore(connected);
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`OvertakeJS server running on port ${PORT}`);
   for (const t of getTracks()) {
     console.log(`  track: ${t.name} — ${t.length} m`);
   }
 });
+// Multiplayer rooms run over WebSockets on the same port (/api/multiplayer).
+attachMultiplayer(server, { allowedOrigin: CLIENT_URL });

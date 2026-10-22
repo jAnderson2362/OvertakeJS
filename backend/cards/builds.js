@@ -52,7 +52,8 @@ function referenceLap(car) {
 
 const KMH_100 = 100 / 3.6;
 
-function summary(car) {
+/** Headline stats for a car record (stock or tuned), as the garage shows them. */
+export function summary(car) {
   const lap = referenceLap(car);
   return {
     hp: Math.round(car.hp),

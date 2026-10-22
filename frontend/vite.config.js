@@ -7,7 +7,8 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
-      '/api': 'http://localhost:5000',
+      // ws: multiplayer rooms connect to /api/multiplayer over WebSockets.
+      '/api': { target: 'http://localhost:5000', ws: true },
     },
   },
 })

@@ -164,6 +164,39 @@ function GarageLink() {
   );
 }
 
+/** Pill link to online multiplayer: a two-flag badge that fills red on hover. */
+function MultiplayerLink() {
+  return (
+    <MotionLink
+      to="/multiplayer"
+      whileHover="hover"
+      whileTap={{ scale: 0.97 }}
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: 0.05 }}
+      className={pill}
+    >
+      <span className={badge}>
+        <motion.svg
+          variants={{ hover: { rotate: -10, scale: 1.1 } }}
+          transition={spring}
+          className="w-3.5 h-3.5 text-ink group-hover:text-highlight-fg transition-colors"
+          viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          aria-hidden
+        >
+          <path d="M4 21V5h9l-1.5 3L13 11H4" />
+          <path d="M20 21V9h-5" opacity="0.7" />
+          <path d="M15 9l1.5 2.5L15 14h5" opacity="0.7" />
+        </motion.svg>
+      </span>
+      <span className="flex flex-col leading-none text-left">
+        <span className="text-[10px] uppercase tracking-widest text-ink/40 group-hover:text-ink/60 transition-colors">Online</span>
+        <span className="font-display text-base mt-0.5">Multiplayer</span>
+      </span>
+    </MotionLink>
+  );
+}
+
 export default function StepHeader({ step }) {
   return (
     <header className="mb-8 flex items-start justify-between gap-6 flex-wrap">
@@ -181,7 +214,8 @@ export default function StepHeader({ step }) {
       </motion.div>
 
       <div className="flex flex-col items-end gap-4">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          <MultiplayerLink />
           <GarageLink />
           <CardsLink />
           <UserChip />

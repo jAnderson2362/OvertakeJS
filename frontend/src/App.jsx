@@ -7,6 +7,7 @@ import CardsPage from './pages/CardsPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
 import GaragePage from './pages/GaragePage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
+import MultiplayerPage from './pages/MultiplayerPage.jsx';
 import RaceView from './components/RaceView.jsx';
 import { useAuth } from './auth.jsx';
 
@@ -140,6 +141,7 @@ function App() {
         <Route path="/cards" element={<CardsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/garage" element={<GaragePage />} />
+        <Route path="/multiplayer/*" element={<MultiplayerPage tracks={tracks} cars={cars} />} />
         <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
         <Route
           path="/track"

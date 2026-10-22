@@ -34,27 +34,45 @@ export function clearSession(res) {
   res.clearCookie(COOKIE, { httpOnly: true, sameSite: 'lax', secure: PROD, path: '/' });
 }
 
+/**
+ * The user id a session token belongs to, or null when it is expired,
+ * tampered with, revoked (older version) or the account is gone.
+ */
+export async function userIdFromToken(token) {
+  if (typeof token !== 'string' || !token) return null;
+  let payload;
+  try {
+    payload = jwt.verify(token, SECRET, { algorithms: ['HS256'] });
+  } catch {
+    return null;
+  }
+  const current = await getSessionVersion(payload.sub);
+  return current !== null && payload.v === current ? payload.sub : null;
+}
+
+/** The session token in a raw Cookie header (for WebSocket upgrades, which skip Express). */
+export function tokenFromCookieHeader(header) {
+  for (const part of String(header ?? '').split(';')) {
+    const eq = part.indexOf('=');
+    if (eq !== -1 && part.slice(0, eq).trim() === COOKIE) {
+      try { return decodeURIComponent(part.slice(eq + 1).trim()); } catch { return null; }
+    }
+  }
+  return null;
+}
+
 /** Attach `req.auth = { userId }` when a valid, current session cookie is present. */
 export async function authenticate(req, res, next) {
   const token = req.cookies?.[COOKIE];
   if (!token) return next();
 
-  let payload;
-  try {
-    payload = jwt.verify(token, SECRET, { algorithms: ['HS256'] });
-  } catch {
-    clearSession(res); // expired or tampered: drop it quietly
+  const userId = await userIdFromToken(token);
+  if (!userId) {
+    clearSession(res); // expired, tampered or revoked: drop it quietly
     return next();
   }
 
-  // Revoked (older version) or the account is gone.
-  const current = await getSessionVersion(payload.sub);
-  if (current === null || payload.v !== current) {
-    clearSession(res);
-    return next();
-  }
-
-  req.auth = { userId: payload.sub };
+  req.auth = { userId };
   next();
 }
 

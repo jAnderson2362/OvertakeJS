@@ -24,7 +24,15 @@ function gearbox(speedKmh, topSpeed) {
   return { gear, rpm: Math.round(rpmFrac * MAX_RPM), rpmFrac };
 }
 
-export default function RaceView({ race, onExit, onRerun, rerunning = false }) {
+/**
+ * `live` ({ startAt: local ms, speed }) makes this a shared multiplayer
+ * broadcast: the clock follows the common start time instead of local
+ * controls until the race is over or the viewer replays it. `youId` marks
+ * the viewer's own entry.
+ */
+export default function RaceView({
+  race, onExit, onRerun, rerunning = false, live = null, youId = null, exitLabel = null,
+}) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   // Playback clock lives in a ref so the rAF loop never fights React renders.
@@ -32,7 +40,12 @@ export default function RaceView({ race, onExit, onRerun, rerunning = false }) {
 
   const [speed, setSpeed] = useState(8);
   const [playing, setPlaying] = useState(true);
-  const [hud, setHud] = useState({ t: 0, rows: [], done: false });
+  const [hud, setHud] = useState({ t: 0, rows: [], done: false, countdown: 0 });
+  // Live races follow the shared clock until the viewer replays on their own.
+  const [detached, setDetached] = useState(false);
+  const liveRef = useRef(null);
+  liveRef.current = live && !detached ? live : null;
+  const isLive = Boolean(live) && !detached;
   // Onboard camera: which car we're riding with (null = full-track view).
   const [focusId, setFocusId] = useState(null);
   const focusRef = useRef(null);
@@ -47,7 +60,8 @@ export default function RaceView({ race, onExit, onRerun, rerunning = false }) {
     playRef.current.t = 0;
     playRef.current.lastFrame = null;
     setPlaying(true);
-    setHud({ t: 0, rows: [], done: false });
+    setDetached(false);
+    setHud({ t: 0, rows: [], done: false, countdown: 0 });
   }, [race]);
 
   useEffect(() => { playRef.current.speed = speed; }, [speed]);
@@ -98,6 +112,7 @@ export default function RaceView({ race, onExit, onRerun, rerunning = false }) {
     const { samples, dt, duration } = timeline;
     let raf;
     let lastHud = -1;
+    let lastCountdown = -1;
 
     // Fit transform for the track's bounding box.
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -437,7 +452,10 @@ export default function RaceView({ race, onExit, onRerun, rerunning = false }) {
       if (p.lastFrame == null) p.lastFrame = now;
       const elapsed = (now - p.lastFrame) / 1000;
       p.lastFrame = now;
-      if (p.playing) p.t = Math.min(p.t + elapsed * p.speed, duration);
+      const lv = liveRef.current;
+      if (lv) p.t = Math.min(Math.max(((Date.now() - lv.startAt) / 1000) * lv.speed, 0), duration);
+      else if (p.playing) p.t = Math.min(p.t + elapsed * p.speed, duration);
+      const countdown = lv && Date.now() < lv.startAt ? Math.ceil((lv.startAt - Date.now()) / 1000) : 0;
 
       // Onboard camera: track the focused car's position and heading.
       const fid = focusRef.current;
@@ -483,9 +501,10 @@ export default function RaceView({ race, onExit, onRerun, rerunning = false }) {
       drawVignette();
 
       // Throttle HUD (React) updates to ~8 Hz.
-      if (Math.abs(p.t - lastHud) > 0.12 || (p.t >= duration && lastHud < duration)) {
+      if (Math.abs(p.t - lastHud) > 0.12 || (p.t >= duration && lastHud < duration) || countdown !== lastCountdown) {
         lastHud = p.t;
-        setHud({ t: p.t, rows: standingsAt(race, p.t), done: p.t >= duration });
+        lastCountdown = countdown;
+        setHud({ t: p.t, rows: standingsAt(race, p.t), done: p.t >= duration, countdown });
       }
       raf = requestAnimationFrame(frame);
     }
@@ -495,6 +514,9 @@ export default function RaceView({ race, onExit, onRerun, rerunning = false }) {
   }, [race, pointAt]);
 
   const restart = () => {
+    // Leaving the live clock: set the ref now so no frame snaps back to it.
+    liveRef.current = null;
+    setDetached(true);
     playRef.current.t = 0;
     setPlaying(true);
   };
@@ -505,6 +527,7 @@ export default function RaceView({ race, onExit, onRerun, rerunning = false }) {
   );
 
   const leaderLap = hud.rows[0]?.lap ?? 1;
+  const fastestEntry = race.fastestLap ? race.entries.find((e) => e.carId === race.fastestLap.carId) : null;
   const focusRow = focusId != null ? hud.rows.find((r) => r.carId === focusId) : null;
   const toggleFocus = (carId) => setFocusId((cur) => (cur === carId ? null : carId));
 
@@ -542,13 +565,13 @@ export default function RaceView({ race, onExit, onRerun, rerunning = false }) {
   return (
     <div className="h-screen flex flex-col">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-line/30 bg-bg-deep">
-        <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between gap-x-4 gap-y-2 flex-wrap px-5 py-3 border-b border-line/30 bg-bg-deep">
+        <div className="flex items-center gap-x-4 gap-y-2 flex-wrap">
           <button
             onClick={onExit}
             className="px-4 py-1.5 rounded-lg font-display text-lg leading-none border border-line bg-surface text-ink hover:border-ink/60 hover:bg-surface-2 transition-colors"
           >
-            Back to setup
+            {exitLabel ?? 'Back to setup'}
           </button>
           <div>
             <span className="font-display text-xl leading-none align-middle">{race.track.name}</span>
@@ -556,6 +579,12 @@ export default function RaceView({ race, onExit, onRerun, rerunning = false }) {
               {(race.track.length / 1000).toFixed(2)} km · {race.track.laps} laps
             </span>
           </div>
+          {isLive && !hud.done && (
+            <span className="flex items-center gap-1.5 rounded-full border border-highlight/60 bg-accent/20 px-2.5 py-1 text-[11px] uppercase tracking-widest text-ink">
+              <span className="w-1.5 h-1.5 rounded-full bg-highlight-soft animate-pulse" />
+              Live
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-5 text-sm">
           <span className="tabular-nums text-ink/80">
@@ -565,9 +594,10 @@ export default function RaceView({ race, onExit, onRerun, rerunning = false }) {
         </div>
       </div>
 
-      <div className="flex flex-1 min-h-0">
+      {/* Phones stack the track above the standings instead of squeezing it beside them. */}
+      <div className="flex flex-col md:flex-row flex-1 min-h-0">
         {/* Canvas */}
-        <div ref={containerRef} className="flex-1 relative bg-bg">
+        <div ref={containerRef} className="flex-1 min-h-[45vh] md:min-h-0 relative bg-bg">
           <canvas ref={canvasRef} className="absolute inset-0" />
 
           {/* Onboard camera banner */}
@@ -576,7 +606,8 @@ export default function RaceView({ race, onExit, onRerun, rerunning = false }) {
               <span className="w-2.5 h-2.5 rounded-full ring-2 ring-bg-deep" style={{ background: focusRow.color }} />
               <div className="leading-tight">
                 <div className="text-[10px] uppercase tracking-wider text-highlight-soft">Onboard · P{focusRow.position}</div>
-                <div className="font-display text-lg leading-none">{focusRow.name}</div>
+                <div className="font-display text-lg leading-none">{focusRow.driver ?? focusRow.name}</div>
+                {focusRow.driver && <div className="text-[11px] text-ink/50 mt-0.5">{focusRow.name}</div>}
               </div>
               <div className="text-right leading-tight tabular-nums pl-1">
                 <div className="text-lg font-semibold">{Math.round(focusRow.speedKmh)}<span className="text-[10px] text-ink/45 ml-0.5">km/h</span></div>
@@ -604,6 +635,23 @@ export default function RaceView({ race, onExit, onRerun, rerunning = false }) {
             ))}
           </div>
 
+          {/* Start lights (live races) */}
+          {hud.countdown > 0 && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="rounded-2xl border border-line/40 bg-bg-deep/85 backdrop-blur-sm px-10 py-6 text-center shadow-2xl">
+                <div className="text-[11px] uppercase tracking-[0.3em] text-ink/50">Lights out in</div>
+                <div key={hud.countdown} className="font-display text-7xl leading-none mt-2 text-highlight-soft tabular-nums">
+                  {hud.countdown}
+                </div>
+                <div className="flex justify-center gap-2 mt-4" aria-hidden>
+                  {[5, 4, 3, 2, 1].map((n) => (
+                    <span key={n} className={`w-3.5 h-3.5 rounded-full border border-line/60 ${hud.countdown <= n ? 'bg-highlight shadow-[0_0_10px_var(--highlight-glow)]' : 'bg-bg'}`} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Results overlay */}
           {hud.done && (
             <div className="absolute inset-0 flex items-center justify-center bg-bg/80 backdrop-blur-sm">
@@ -613,15 +661,19 @@ export default function RaceView({ race, onExit, onRerun, rerunning = false }) {
                   {race.track.name} · {race.track.laps} laps
                   {race.fastestLap && (
                     <> · fastest lap {formatLapTime(race.fastestLap.time)} (
-                    {race.entries.find((e) => e.carId === race.fastestLap.carId)?.name})</>
+                    {fastestEntry?.driver ?? fastestEntry?.name})</>
                   )}
                 </p>
                 <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
                   {race.results.map((r) => (
-                    <div key={r.carId} className="flex items-center gap-3 text-sm bg-bg-deep/60 rounded-lg px-3 py-2">
+                    <div key={r.carId} className={`flex items-center gap-3 text-sm rounded-lg px-3 py-2 ${r.carId === youId ? 'bg-accent/25 border border-highlight/50' : 'bg-bg-deep/60'}`}>
                       <span className="w-6 text-ink/60 font-semibold tabular-nums">{r.position}</span>
                       <CarThumb src={r.image} color={r.color} name={r.name} />
-                      <span className="flex-1 truncate">{r.name}</span>
+                      <span className="flex-1 min-w-0 truncate">
+                        {r.driver ?? r.name}
+                        {r.driver && <span className="text-ink/45 text-xs ml-1.5">{r.name}</span>}
+                      </span>
+                      {r.carId === youId && <span className="text-[9px] text-accent-fg bg-accent px-1 py-px rounded uppercase tracking-wide leading-none">You</span>}
                       <span className="text-ink/60 tabular-nums text-xs">
                         {r.position === 1 ? formatLapTime(r.totalTime) : formatGap(r.gap, 0)}
                       </span>
@@ -644,7 +696,7 @@ export default function RaceView({ race, onExit, onRerun, rerunning = false }) {
                   )}
                   <button onClick={onExit}
                     className="flex-1 py-2.5 rounded-lg bg-line/40 hover:bg-line/60 font-medium text-sm transition-colors">
-                    New race
+                    {exitLabel ?? 'New race'}
                   </button>
                 </div>
               </div>
@@ -653,7 +705,7 @@ export default function RaceView({ race, onExit, onRerun, rerunning = false }) {
         </div>
 
         {/* Leaderboard */}
-        <aside className="w-72 border-l border-line/30 bg-bg-deep flex flex-col">
+        <aside className="w-full md:w-72 max-h-[45vh] md:max-h-none border-t md:border-t-0 md:border-l border-line/30 bg-bg-deep flex flex-col">
           <div className="px-4 py-2 border-b border-line/30 flex items-baseline justify-between">
             <span className="font-display text-lg leading-none tracking-wide text-ink/60">Live standings</span>
             <span className="text-[10px] text-ink/35 uppercase tracking-wider">tap for onboard</span>
@@ -673,11 +725,13 @@ export default function RaceView({ race, onExit, onRerun, rerunning = false }) {
                   <span className="w-5 text-ink/45 font-semibold tabular-nums">{row.position}</span>
                   <CarThumb src={row.image} color={row.color} name={row.name} />
                   <div className="flex-1 min-w-0">
-                    <div className="truncate leading-tight flex items-center gap-1.5">
-                      {row.name}
-                      {selected && <span className="text-[9px] text-accent-fg bg-accent px-1 py-px rounded uppercase tracking-wide leading-none">POV</span>}
+                    <div className="leading-tight flex items-center gap-1.5 min-w-0">
+                      <span className="truncate">{row.driver ?? row.name}</span>
+                      {row.carId === youId && <span className="shrink-0 text-[9px] text-ink bg-line/60 px-1 py-px rounded uppercase tracking-wide leading-none">You</span>}
+                      {selected && <span className="shrink-0 text-[9px] text-accent-fg bg-accent px-1 py-px rounded uppercase tracking-wide leading-none">POV</span>}
                     </div>
-                    <div className="text-[11px] text-ink/45 tabular-nums">
+                    <div className="text-[11px] text-ink/45 tabular-nums truncate">
+                      {row.driver && `${row.name} · `}
                       {row.finished ? 'Finished' : `Lap ${row.lap} · ${Math.round(row.speedKmh)} km/h`}
                     </div>
                   </div>
@@ -694,32 +748,41 @@ export default function RaceView({ race, onExit, onRerun, rerunning = false }) {
             <SpeedDash row={focusRow} telemetry={telemetry} topSpeed={topSpeed} />
           )}
 
-          {/* Playback controls */}
+          {/* Playback controls (a live race runs on the shared clock) */}
           <div className="border-t border-line/30 p-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPlaying((p) => !p)}
-                className="flex-1 py-2 rounded-lg bg-line/40 hover:bg-line/60 text-sm font-medium transition-colors">
-                {playing ? '❚❚ Pause' : '▶ Play'}
-              </button>
-              <button onClick={restart}
-                className="py-2 px-3 rounded-lg bg-line/40 hover:bg-line/60 text-sm transition-colors">
-                ↺
-              </button>
-            </div>
-            <div>
-              <div className="text-[11px] text-ink/45 mb-1.5">Playback speed</div>
-              <div className="grid grid-cols-6 gap-1">
-                {SPEED_OPTIONS.map((s) => (
-                  <button key={s} onClick={() => setSpeed(s)}
-                    className={`py-1 rounded text-xs tabular-nums transition-colors ${
-                      speed === s ? 'bg-highlight text-highlight-fg font-semibold' : 'bg-line/30 text-ink/60 hover:bg-line/50'
-                    }`}>
-                    {s}×
-                  </button>
-                ))}
+            {isLive && !hud.done ? (
+              <div className="rounded-lg border border-line/30 bg-surface/50 px-3 py-2.5 text-xs text-ink/60 leading-relaxed">
+                <span className="text-ink font-medium">Live at {live.speed}× speed.</span> Every driver sees the same moment.
+                Replay it at your own pace once the flag drops.
               </div>
-            </div>
+            ) : (
+              <>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPlaying((p) => !p)}
+                  className="flex-1 py-2 rounded-lg bg-line/40 hover:bg-line/60 text-sm font-medium transition-colors">
+                  {playing ? '❚❚ Pause' : '▶ Play'}
+                </button>
+                <button onClick={restart}
+                  className="py-2 px-3 rounded-lg bg-line/40 hover:bg-line/60 text-sm transition-colors">
+                  ↺
+                </button>
+              </div>
+              <div>
+                <div className="text-[11px] text-ink/45 mb-1.5">Playback speed</div>
+                <div className="grid grid-cols-6 gap-1">
+                  {SPEED_OPTIONS.map((s) => (
+                    <button key={s} onClick={() => setSpeed(s)}
+                      className={`py-1 rounded text-xs tabular-nums transition-colors ${
+                        speed === s ? 'bg-highlight text-highlight-fg font-semibold' : 'bg-line/30 text-ink/60 hover:bg-line/50'
+                      }`}>
+                      {s}×
+                    </button>
+                  ))}
+                </div>
+              </div>
+              </>
+            )}
             <div className="h-1.5 rounded-full bg-line/30 overflow-hidden">
               <div className="h-full bg-highlight transition-[width] duration-200"
                 style={{ width: `${Math.min(100, (hud.t / race.timeline.duration) * 100)}%` }} />
